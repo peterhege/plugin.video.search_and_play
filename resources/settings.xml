@@ -1,0 +1,10 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<settings>
+    <category label="The Movie DB">
+        <setting label="API kulcs" type="text" id="tmdb_key" default=""/>
+    </category>
+    <category label="Torrent">
+        <setting label="nCore Felhasználónév" type="text" id="ncore_user"/>
+        <setting label="nCore Jelszó" type="text" id="ncore_pass"/>
+    </category>
+</settings>
