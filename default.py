@@ -6,7 +6,7 @@ import xbmcgui
 import xbmcplugin
 import tmdbsimple as tmdb
 
-from resources.lib import library_driver, youtube_driver, netflix_driver
+from resources.lib import library_driver, youtube_driver, netflix_driver, ncore_driver
 from resources.lib.control import get_media, build_query, dialog, setting, call_user_func
 
 try:
@@ -93,7 +93,7 @@ def load_movie():
     videos = movie.videos(language=xbmc.getLanguage(xbmc.ISO_639_1))
     data['videos'] = videos['results'] if 'results' in videos else []
     context_menu = {}
-    for driver in [library_driver, youtube_driver, netflix_driver]:
+    for driver in [library_driver, youtube_driver, netflix_driver, ncore_driver]:
         found = driver.search_movie(data)
         if found:
             context_menu.update(driver.context(found))

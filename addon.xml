@@ -1,4 +1,4 @@
-<addon id="plugin.video.search_and_play" name="Search and Play" provider-name="peterhege" version="0.1.1">
+<addon id="plugin.video.search_and_play" name="Search and Play" provider-name="peterhege" version="0.1.2">
     <requires>
         <import addon="xbmc.python" version="2.1.0" />
         <import addon="script.module.tmdbsimple" version="2.2.0" />
@@ -9,7 +9,7 @@
     <extension point="xbmc.addon.metadata">
         <summary lang="hu">Search and Play</summary>
         <language>hu</language>
-        <description lang="hu">Filmek és Sorozatok keresése, letöltése és lejása</description>
+        <description lang="hu">Filmek &#233;s Sorozatok keres&#233;se, let&#246;lt&#233;se &#233;s lej&#225;sa</description>
         <platform>all</platform>
         <source>https://github.com/peterhege/plugin.video.search_and_play</source>
         <assets>
