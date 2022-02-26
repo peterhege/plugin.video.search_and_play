@@ -32,6 +32,7 @@ LANGUAGES = {
     'eng': 'Angol'
 }
 QUALITIES = ['SD', '720p', '1080p', '2160p']
+TMDB_DATA = []
 if not os.path.exists(CACHE_DIR):
     os.mkdir(CACHE_DIR)
 if not os.path.exists(TORRENT_CACHE_DIR):
@@ -43,6 +44,8 @@ def for_movie(tmdb_data):
 
 
 def context(tmdb_data):
+    global TMDB_DATA
+    TMDB_DATA = tmdb_data
     string = json.dumps(tmdb_data)
     b64 = base64.b64encode(string)
     context_key = 'ncore_driver.check({})'.format(b64)
@@ -75,22 +78,32 @@ def check(tmdb_data):
     if torrents:
         return language_menu(base64.b64encode(json.dumps(torrents)))
 
+    search_job(tmdb_data['id'])
+
+
+def search_job(tmdb_id, language=None, quality=None):
     looking = xbmcgui.Dialog().yesno(
         'Nem található!', 'Figyeljem hogy mikor elérhető?'
     )
     if not looking:
         return
-    download = xbmcgui.Dialog().yesno(
+    will_download = xbmcgui.Dialog().yesno(
         'Figyelni fogok!', 'Ha elérhető, akkor mit tegyek?',
         yeslabel='Letöltés', nolabel='Csak értesítés'
     )
-    languages = xbmcgui.Dialog().multiselect('Nyelv', LANGUAGES.values())
-    languages = [LANGUAGES.keys()[i] for i in range(len(LANGUAGES.keys())) if i in languages]
+    if not language:
+        languages = xbmcgui.Dialog().multiselect('Nyelv', LANGUAGES.values())
+        languages = [LANGUAGES.keys()[i] for i in range(len(LANGUAGES.keys())) if i in languages]
+    else:
+        languages = [language]
     qualities = []
-    if download:
-        qualities = xbmcgui.Dialog().multiselect('Felbontás', QUALITIES)
-        qualities = [QUALITIES[i] for i in range(len(QUALITIES)) if i in qualities]
-    available_manager.search_job(tmdb_data['id'], languages, download, qualities)
+    if will_download:
+        if not quality:
+            qualities = xbmcgui.Dialog().multiselect('Felbontás', QUALITIES)
+            qualities = [QUALITIES[i] for i in range(len(QUALITIES)) if i in qualities]
+        else:
+            qualities = [quality]
+    available_manager.search_job(tmdb_id, languages, will_download, qualities)
     xbmcgui.Dialog().ok('Kész', 'Szólok ha találok valamit ;)')
 
 
@@ -138,6 +151,10 @@ def search_movie(tmdb_data, pages=None, found=None, second=None):
         year=tmdb_data['release_date'].encode('utf-8')[:4]
     )
     page = 1 if pages is None else pages.pop(0)
+
+    if not found and page > 10:
+        return found
+
     title = second if second else tmdb_data['title']
     title = title.lower().replace(' ', '.').encode('utf-8')
     url = '{endpoint}?miszerint=seeders&hogyan=DESC&tipus=kivalasztottak_kozott&kivalasztott_tipus=xvid,hd,xvid_hun,hd_hun&mire={query}&oldal={page}' \
@@ -202,19 +219,36 @@ def language_menu(torrents):
             languages[language] = {}
         languages[language][torrents[key]] = quality if quality == 'SD' else 'HD {}'.format(quality)
         menu[language] = '[B]{lang}[/B] ({count})'.format(lang=language_text, count=len(languages[language].values()))
+
     context_menu = {}
-    for language in menu:
-        menu_key = 'ncore_driver.download_menu({b64})'.format(b64=base64.b64encode(json.dumps(languages[language])))
-        context_menu[menu_key] = menu[language]
+    for language in LANGUAGES:
+        if language in menu:
+            menu_key = 'ncore_driver.download_menu({b64},{language})'.format(
+                b64=base64.b64encode(json.dumps(languages[language])),
+                language=language
+            )
+            context_menu[menu_key] = menu[language]
+        else:
+            menu_key = 'ncore_driver.search_job({id},{language})'.format(id=TMDB_DATA['id'], language=language)
+            context_menu[menu_key] = '[COLOR red][B]{lang}[/B][/COLOR] (Nincs)'.format(lang=LANGUAGES[language.lower()])
+
     context_factory.show(context_menu, prev_key)
 
 
-def download_menu(qualities):
+def download_menu(qualities, language):
     qualities = json.loads(base64.b64decode(qualities))
     menu = {}
     for torrent_id in qualities:
         menu_key = 'ncore_driver.download({torrent_id})'.format(torrent_id=torrent_id)
         menu[menu_key] = qualities[torrent_id]
+
+    for quality in QUALITIES:
+        if quality not in qualities.values() and 'HD {}'.format(quality) not in qualities.values():
+            menu_key = 'ncore_driver.search_job({id},{language},{quality})'.format(
+                id=TMDB_DATA['id'], language=language, quality=quality
+            )
+            menu[menu_key] = '[COLOR red][B]{quality}[/B][/COLOR] (Nincs)'.format(quality=quality)
+
     context_factory.show(menu)
 
 
@@ -231,8 +265,6 @@ def download(torrent_id):
 
         download_url = '{endpoint}?action=download&id={torrent_id}&key={key}' \
             .format(endpoint=endpoint('torrents'), torrent_id=torrent_id, key=key)
-
-        xbmc.log(download_url, xbmc.LOGERROR)
 
         content = session.get(download_url, stream=True)
         content.raw.decode_content = True
