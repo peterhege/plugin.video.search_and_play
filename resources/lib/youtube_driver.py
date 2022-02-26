@@ -9,7 +9,7 @@ except:
     import sys
 
 
-def search_movie(tmdb_data):
+def for_movie(tmdb_data):
     videos = []
     for video in tmdb_data['videos']:
         if video['site'] == 'YouTube':

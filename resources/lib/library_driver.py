@@ -7,7 +7,7 @@ import xbmc
 import xbmcgui
 
 
-def search_movie(tmdb_data, properties=None):
+def for_movie(tmdb_data, properties=None):
     try:
         if properties is None:
             properties = ['title', 'resume', 'originaltitle']
@@ -52,6 +52,7 @@ def context(library_data):
 
 
 def play(movie_id, resume=None):
+    xbmc.executebuiltin('Dialog.Close(all,true)')
     query = {"jsonrpc": "2.0", "method": "Player.Open", "params": {"item": {"movieid": int(movie_id)}}, "id": 1}
     try:
         response = json.loads(unicode(xbmc.executeJSONRPC(json.dumps(query)), 'utf-8', errors='ignore'))
@@ -82,3 +83,8 @@ class MyPlayer(xbmc.Player):
     def onAVStarted(self):
         if self.resume > 0:
             self.seekTime(float(self.resume))
+
+
+def update_library():
+    query = {"jsonrpc": "2.0", "method": "VideoLibrary.Scan", "params": {"showdialogs": False}, "id": 1}
+    return json.loads(unicode(xbmc.executeJSONRPC(json.dumps(query)), 'utf-8', errors='ignore'))

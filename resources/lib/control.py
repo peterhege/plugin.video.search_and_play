@@ -45,4 +45,19 @@ def call_user_func(s):
     args = re.search(r'\((.*)\)$', method).groups()[0].split(',')
     method = re.sub(r'\(.*\)$', '', method)
     module = importlib.import_module('resources.lib.{module}'.format(module=module))
+
+    for i in range(len(args)):
+        if re.match(r'^0[^.]0*', args[i]):
+            continue
+        try:
+            args[i] = int(args[i])
+            continue
+        except:
+            pass
+        try:
+            args[i] = float(args[i])
+            continue
+        except:
+            pass
+
     return getattr(module, method)(*args)

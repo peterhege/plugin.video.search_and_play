@@ -6,5 +6,11 @@
     <category label="Torrent">
         <setting label="nCore Felhasználónév" type="text" id="ncore_user"/>
         <setting label="nCore Jelszó" type="text" id="ncore_pass"/>
+        <setting label="qBittorrent host" type="text" id="qbittorrent_host"/>
+        <setting label="qBittorrent Felhasználónév" type="text" id="qbittorrent_user"/>
+        <setting label="qBittorrent Jelszó" type="text" id="qbittorrent_pass"/>
+        <setting label="qBittorrent Filmek mappa" type="text" id="qbittorrent_movies_path" default="/downloads/Filmek/"/>
+        <setting label="qBittorrent Sorozatok mappa" type="text" default="/downloads/Sorozatok/"  id="qbittorrent_tv_path"/>
+        <setting label="Lejátszás kezdete" type="number" default="25"  id="play_from"/>
     </category>
 </settings>
