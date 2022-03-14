@@ -23,7 +23,9 @@ def context(videos):
     context_menu = {}
     for video in videos:
         context_play = 'youtube_driver.play({key})'.format(key=video['key'])
-        context_menu[context_play] = 'Előzetes lejátszása' if video['type'] == 'Trailer' else video['name']
+        context_menu[context_play] = video['name']
+        if video['type'] == 'Trailer':
+            context_menu[context_play] += ' (Előzetes)'
     return context_menu
 
 
