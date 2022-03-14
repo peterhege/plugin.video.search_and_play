@@ -23,9 +23,9 @@ def context(videos):
     context_menu = {}
     for video in videos:
         context_play = 'youtube_driver.play({key})'.format(key=video['key'])
-        context_menu[context_play] = video['name']
+        context_menu[context_play] = video['name'].encode('utf-8')
         if video['type'] == 'Trailer':
-            context_menu[context_play] += ' (Előzetes)'
+            context_menu[context_play] = '[COLOR yellow][B]Előzetes[/B][/COLOR] ' + context_menu[context_play]
     return context_menu
 
 

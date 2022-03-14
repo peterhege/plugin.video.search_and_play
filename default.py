@@ -299,8 +299,11 @@ def show_movies(movies):
 
 
 def load_movie():
-    movie_id = int(params['data'])
-    movies.load_movie(movie_id)
+    try:
+        movie_id = int(params['data'])
+        movies.load_movie(movie_id)
+    except Exception as e:
+        xbmcgui.Dialog().ok('error', e.message)
 
 
 def add_dir(name, method, icon, fanart, description, page, data=None, is_playable=False, info=None, bottom=False):
@@ -323,7 +326,7 @@ def add_dir(name, method, icon, fanart, description, page, data=None, is_playabl
         list_item.setProperty('isFolder', 'false')
         list_item.setContentLookup(False)
         list_item.setArt({'icon': icon, 'thumb': icon, 'poster': icon, 'fanart': fanart})
-    xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]), url=url, listitem=list_item, isFolder=not is_playable)
+    xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]), url=url, listitem=list_item, isFolder=True)
 
 
 def get_params():

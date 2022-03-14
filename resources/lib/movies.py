@@ -1,5 +1,6 @@
 import xbmc
 import tmdbsimple as tmdb
+import xbmcgui
 
 from resources.lib import library_driver, youtube_driver, netflix_driver, ncore_driver, context_factory
 
