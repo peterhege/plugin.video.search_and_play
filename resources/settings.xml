@@ -18,7 +18,7 @@
     </category>
     <category label="Tárhely">
         <setting id="space_free" type="bool" label="Automatikus tárhely felszabadítás" default="false"/>
-        <setting id="space_free_min_space" type="number" label="Minimális tárhely (GB)" default="0"
+        <setting id="space_free_min_space" type="number" label="Minimális tárhely (GB)" default="10"
                  visible="eq(-1,true)"
                  subsetting="true"/>
     </category>

@@ -193,13 +193,6 @@ def movie_random():
 
 def movie_trending():
     movie_list('Trending', {'language': xbmc.getLanguage(xbmc.ISO_639_1)})
-    # xbmc.log(json.dumps(movies), xbmc.LOGERROR)
-    # for movie in movies['results']:
-    #     add_dir(
-    #         movie['title'].encode('utf-8'), 'load_movie', '{}/{}'.format(__TMDB_IMAGE_BASE__, movie['poster_path']),
-    #         '{}/{}'.format(__TMDB_IMAGE_BASE__, movie['backdrop_path']), movie['overview'].encode('utf-8'), '1',
-    #         movie['id'], True
-    #     )
 
 
 def movie_search():

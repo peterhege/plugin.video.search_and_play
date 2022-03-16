@@ -11,6 +11,7 @@ import xbmc
 import xbmcaddon
 import xbmcgui
 import xbmcplugin
+import tmdbsimple as tmdb
 
 from resources.lib import settings_repository, library_driver, context_factory
 from resources.lib.control import setting, dialog, get_media
@@ -202,7 +203,33 @@ def free_up_storage_space():
     if not oldest:
         return
 
+    path = os.path.join(oldest['save_path'], oldest['name']).encode('utf-8')
+    library_data = library_driver.find_by_path(path)
+
+    tmdb.API_KEY = setting('tmdb_key')
+    movie = tmdb.Find(library_data['result']['movies'][0]['imdbnumber']).info(
+        language=xbmc.getLanguage(xbmc.ISO_639_1),
+        external_source='imdb_id'
+    )['movie_results'][0]
+
+    download_link = 'plugin://plugin.video.search_and_play/?data={}&method=load_movie&page=1'.format(movie['id'])
+
     remove_torrents([oldest['hash']])
+
+    for i in range(100):
+        if not os.path.exists(path):
+            os.mkdir(path)
+            break
+        time.sleep(1)
+
+    strm_file = os.path.join(
+        path,
+        '{} {}.strm'.format(movie['title'].encode('utf-8'), movie['release_date'][:4])
+    )
+
+    with open(strm_file.decode('utf-8'), 'w') as f:
+        f.write(download_link)
+
     xbmcgui.Dialog().notification('Search and Play', '{} torrent törölve'.format(oldest['name']), get_media('icon.png'))
 
 

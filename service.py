@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 import datetime
-import re
 import threading
-import time
 
 import xbmcgui
 
@@ -35,5 +33,3 @@ def run(key, period):
 while True:
     if run('space_free', '5 minutes'):
         start(qbittorrent_driver.free_up_storage_space)
-# xbmcgui.Dialog().ok('ok', 'test')
-# xbmcgui.Dialog().ok('ok', str(qbittorrent_driver.free_space()))
