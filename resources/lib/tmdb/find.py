@@ -30,6 +30,10 @@ class Trending(TMDB):
         self.media_type = media_type
         self.time_window = time_window
 
+    def movie(self, **kwargs):
+        self.media_type = 'movie'
+        return self.info(**kwargs)
+
     def info(self, **kwargs):
         """
         Get the daily or weekly trending items. The daily trending list tracks

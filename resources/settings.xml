@@ -3,14 +3,23 @@
     <category label="The Movie DB">
         <setting label="API kulcs" type="text" id="tmdb_key" default=""/>
     </category>
-    <category label="Torrent">
-        <setting label="nCore Felhasználónév" type="text" id="ncore_user"/>
-        <setting label="nCore Jelszó" type="text" id="ncore_pass"/>
-        <setting label="qBittorrent host" type="text" id="qbittorrent_host"/>
-        <setting label="qBittorrent Felhasználónév" type="text" id="qbittorrent_user"/>
-        <setting label="qBittorrent Jelszó" type="text" id="qbittorrent_pass"/>
-        <setting label="qBittorrent Filmek mappa" type="text" id="qbittorrent_movies_path" default="/downloads/Filmek/"/>
-        <setting label="qBittorrent Sorozatok mappa" type="text" default="/downloads/Sorozatok/"  id="qbittorrent_tv_path"/>
-        <setting label="Lejátszás kezdete" type="number" default="25"  id="play_from"/>
+    <category label="Letöltés">
+        <setting label="nCore" type="lsep"/>
+        <setting label="Felhasználónév" type="text" id="ncore_user"/>
+        <setting label="Jelszó" type="text" id="ncore_pass"/>
+        <setting label="qBittorrent" type="lsep"/>
+        <setting label="Host" type="text" id="qbittorrent_host"/>
+        <setting label="Felhasználónév" type="text" id="qbittorrent_user"/>
+        <setting label="Jelszó" type="text" id="qbittorrent_pass"/>
+        <setting label="Filmek mappa" type="text" id="qbittorrent_movies_path" default="/downloads/Filmek/"/>
+        <setting label="Sorozatok mappa" type="text" default="/downloads/Sorozatok/" id="qbittorrent_tv_path"/>
+        <setting label="Egyéb" type="lsep"/>
+        <setting label="Lejátszás megkezdése (%)" type="number" default="25" id="play_from"/>
+    </category>
+    <category label="Tárhely">
+        <setting id="space_free" type="bool" label="Automatikus tárhely felszabadítás" default="false"/>
+        <setting id="space_free_min_space" type="number" label="Minimális tárhely (GB)" default="0"
+                 visible="eq(-1,true)"
+                 subsetting="true"/>
     </category>
 </settings>

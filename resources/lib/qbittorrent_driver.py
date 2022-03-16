@@ -13,7 +13,7 @@ import xbmcgui
 import xbmcplugin
 
 from resources.lib import settings_repository, library_driver, context_factory
-from resources.lib.control import setting, dialog
+from resources.lib.control import setting, dialog, get_media
 
 REPLACE_FILE_NAME = None
 TMDB_DATA = {}
@@ -39,8 +39,13 @@ cookie_file_name = os.path.join(
     'qbittorrent.cookie'
 )
 
+INITED = False
 
-def start(torrent_file, save_path, category):
+
+def init():
+    global INITED
+    if INITED:
+        return
     (user, pwd) = (setting('qbittorrent_user'), setting('qbittorrent_pass'))
     if not login(user, pwd):
         (user, pwd) = (settings_repository.setting('qbittorrent_user'), settings_repository.setting('qbittorrent_pass'))
@@ -58,11 +63,17 @@ def start(torrent_file, save_path, category):
             if not user or not pwd:
                 return
             i += 1
+    INITED = True
+
+
+def start(torrent_file, save_path, category):
+    init()
     download(torrent_file, save_path, category)
 
 
 def download(torrent_file, save_path, category):
-    data = {'savepath': save_path, 'category': category}
+    init()
+    data = {'savepath': save_path, 'category': 'search_and_play', 'tags': category}
     buffer = open(torrent_file, 'rb')
     files = {'torrents': buffer}
     response = session.post(endpoint('torrents/add'), data=data, files=files)
@@ -133,34 +144,86 @@ def download(torrent_file, save_path, category):
 
 
 def get_torrent_progress(hash):
+    init()
     torrent_info = get_torrent_info(hash)
     return float(torrent_info['progress'])
 
 
 def get_torrent_info(hash):
+    init()
     url = '{endpoint}?hashes={hash}'.format(endpoint=endpoint('torrents/info'), hash=hash)
-    response = session.get(url.format(endpoint=endpoint('torrents/info')))
+    response = session.get(url)
     return json.loads(response.content)[0]
 
 
+def get_oldest_torrent():
+    init()
+    url = '{endpoint}?sort=added_on&limit=1&category=search_and_play'
+    try:
+        response = session.get(url.format(endpoint=endpoint('torrents/info')))
+        return json.loads(response.content)[0]
+    except Exception as e:
+        return None
+
+
 def rename_torrent_file(hash, old_path, new_path):
+    init()
     url = '{endpoint}?hash={hash}&oldPath={old_path}&newPath={new_path}'
     url = url.format(endpoint=endpoint('torrents/renameFile'), hash=hash, old_path=old_path, new_path=new_path)
-    response = session.get(url.format(endpoint=endpoint('torrents/info')))
+    response = session.get(url)
     if response.status_code != 200:
         xbmcgui.Dialog().notification('Hiba', response.content, xbmcgui.NOTIFICATION_WARNING)
 
 
 def get_last_torrent():
+    init()
     url = '{endpoint}?sort=added_on&reverse=true&limit=1'
     response = session.get(url.format(endpoint=endpoint('torrents/info')))
     return json.loads(response.content)[0]
 
 
 def get_torrent_files(hash):
+    init()
     url = '{endpoint}?hash={hash}'.format(endpoint=endpoint('torrents/files'), hash=hash)
-    response = session.get(url.format(endpoint=endpoint('torrents/info')))
+    response = session.get(url)
     return json.loads(response.content)
+
+
+def free_up_storage_space():
+    if not setting('space_free'):
+        return
+
+    min_space = float(setting('space_free_min_space'))
+    free_space = get_free_space() / (1024 ** 3)
+    if free_space is False or free_space > min_space:
+        return
+
+    oldest = get_oldest_torrent()
+    if not oldest:
+        return
+
+    remove_torrents([oldest['hash']])
+    xbmcgui.Dialog().notification('Search and Play', '{} torrent törölve'.format(oldest['name']), get_media('icon.png'))
+
+
+def remove_torrents(hashes):
+    init()
+    hashes = '|'.join(hashes)
+    data = {'hashes': hashes, 'deleteFiles': True}
+    try:
+        return session.post(endpoint('torrents/delete'), data=data)
+    except Exception as e:
+        return False
+
+
+def get_free_space():
+    init()
+    url = '{endpoint}'.format(endpoint=endpoint('sync/maindata'))
+    try:
+        response = session.get(url)
+        return float(json.loads(response.content)['server_state']['free_space_on_disk'])
+    except Exception as e:
+        return False
 
 
 def login(user, pwd):
@@ -200,5 +263,6 @@ def get_auth():
 
 
 def toggle_sequential_download(hash):
+    init()
     url = '{endpoint}?hashes={hash}'.format(endpoint=endpoint('torrents/toggleSequentialDownload'), hash=hash)
     response = session.get(url)

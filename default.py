@@ -4,7 +4,6 @@ import hashlib
 import json
 import random
 import re
-import time
 import urllib
 import datetime
 import xbmc
@@ -13,19 +12,86 @@ import xbmcgui
 import xbmcplugin
 import tmdbsimple as tmdb
 
+from resources.lib.tmdb.find import Trending
 from resources.lib import movies
 from resources.lib.control import get_media, build_query, dialog, setting
-from resources.lib.tmdb.find import Trending
 
 try:
     sys
 except:
     import sys
 
+KODI_SORT_METHOD_NAME = 1
+KODI_SORT_METHOD_DATE = 2
+KODI_SORT_METHOD_SIZE = 3
+KODI_SORT_METHOD_FILE = 4
+KODI_SORT_METHOD_PATH = 5
+KODI_SORT_METHOD_DRIVETYPE = 6
+KODI_SORT_METHOD_TITLE = 7
+KODI_SORT_METHOD_TRACKNUMBER = 8
+KODI_SORT_METHOD_TIME = 9
+KODI_SORT_METHOD_ARTIST = 10
+KODI_SORT_METHOD_ARTISTTHENYEAR = 11
+KODI_SORT_METHOD_ALBUM = 12
+KODI_SORT_METHOD_ALBUMTYPE = 13
+KODI_SORT_METHOD_GENRE = 14
+KODI_SORT_METHOD_COUNTRY = 15
+KODI_SORT_METHOD_YEAR = 16
+KODI_SORT_METHOD_RATING = 17
+KODI_SORT_METHOD_USERRATING = 18
+KODI_SORT_METHOD_VOTES = 19
+KODI_SORT_METHOD_TOP250 = 20
+KODI_SORT_METHOD_PROGRAMCOUNT = 21
+KODI_SORT_METHOD_PLAYLISTORDER = 22
+KODI_SORT_METHOD_EPISODENUMBER = 23
+KODI_SORT_METHOD_SEASON = 24
+KODI_SORT_METHOD_NUMBEROFEPISODES = 25
+KODI_SORT_METHOD_NUMBEROFWATCHEDEPISODES = 26
+KODI_SORT_METHOD_TVSHOWSTATUS = 27
+KODI_SORT_METHOD_TVSHOWTITLE = 28
+KODI_SORT_METHOD_SORTTITLE = 29
+KODI_SORT_METHOD_PRODUCTIONCODE = 30
+KODI_SORT_METHOD_MPAA = 31
+KODI_SORT_METHOD_VIDEORESOLUTION = 32
+KODI_SORT_METHOD_VIDEOCODEC = 33
+KODI_SORT_METHOD_VIDEOASPECTRATIO = 34
+KODI_SORT_METHOD_AUDIOCHANNELS = 35
+KODI_SORT_METHOD_AUDIOCODEC = 36
+KODI_SORT_METHOD_AUDIOLANGUAGE = 37
+KODI_SORT_METHOD_SUBTITLELANGUAGE = 38
+KODI_SORT_METHOD_STUDIO = 39
+KODI_SORT_METHOD_DATEADDED = 40
+KODI_SORT_METHOD_LASTPLAYED = 41
+KODI_SORT_METHOD_PLAYCOUNT = 42
+KODI_SORT_METHOD_LISTENERS = 43
+KODI_SORT_METHOD_BITRATE = 44
+KODI_SORT_METHOD_RANDOM = 45
+KODI_SORT_METHOD_CHANNEL = 46
+KODI_SORT_METHOD_CHANNELNUMBER = 47
+KODI_SORT_METHOD_DATETAKEN = 48
+KODI_SORT_METHOD_RELEVANCE = 49
+KODI_SORT_METHOD_INSTALLDATE = 50
+KODI_SORT_METHOD_LASTUPDATED = 51
+KODI_SORT_METHOD_LASTUSED = 52
+
 __addon__ = xbmcaddon.Addon()
 __addon_name__ = __addon__.getAddonInfo('name')
 __TMDB_IMAGE_BASE__ = 'https://image.tmdb.org/t/p/original'
 __GENRES__ = None
+__SORT__ = {
+    'movie': {
+        'Discover': {
+            'popularity.asc': {'name': 'Népszerűtlen', 'kodi': KODI_SORT_METHOD_RATING},
+            'popularity.desc': {'name': 'Népszerű', 'kodi': KODI_SORT_METHOD_RATING},
+            'primary_release_date.asc': {'name': 'Megjelenés szerint növekvő', 'kodi': KODI_SORT_METHOD_YEAR},
+            'primary_release_date.desc': {'name': 'Megjelenés szerint csökkenő', 'kodi': KODI_SORT_METHOD_YEAR},
+            'original_title.asc': {'name': 'Eredeti cím szerint növekvő', 'kodi': KODI_SORT_METHOD_TITLE},
+            'original_title.desc': {'name': 'Eredeti cím szerint csökkenő', 'kodi': KODI_SORT_METHOD_TITLE},
+            'vote_average.asc': {'name': 'Értékelés szerint növekvő', 'kodi': KODI_SORT_METHOD_RATING},
+            'vote_average.desc': {'name': 'Értékelés szerint csökkenő', 'kodi': KODI_SORT_METHOD_RATING}
+        }
+    }
+}
 
 tmdb.API_KEY = setting('tmdb_key')
 if not tmdb.API_KEY:
@@ -122,22 +188,18 @@ def movie_random():
     search_params['year.gte'] = year_gte
     search_params['year.lte'] = year_lte
     add_dir('Újra', 'movie_random', 'search_icon.png', 'movie_fanart.jpg', 'Új lista generálása', 1,
-            data=base64.b64encode(json.dumps(search_params)), bottom=True)
+            data=base64.b64encode(json.dumps(search_params)), position='bottom')
 
 
 def movie_trending():
-    try:
-        movies = Trending(media_type='movie', time_window='week').info(language=xbmc.getLanguage(xbmc.ISO_639_1))
-    except Exception as e:
-        dialog.ok('error', e.message)
-    xbmc.log(json.dumps(movies), xbmc.LOGERROR)
-    for movie in movies['results']:
-        add_dir(
-            movie['title'].encode('utf-8'), 'load_movie', '{}/{}'.format(__TMDB_IMAGE_BASE__, movie['poster_path']),
-            '{}/{}'.format(__TMDB_IMAGE_BASE__, movie['backdrop_path']), movie['overview'].encode('utf-8'), '1',
-            movie['id'], True
-        )
-    xbmcplugin.setContent(int(sys.argv[1]), 'movies')
+    movie_list('Trending', {'language': xbmc.getLanguage(xbmc.ISO_639_1)})
+    # xbmc.log(json.dumps(movies), xbmc.LOGERROR)
+    # for movie in movies['results']:
+    #     add_dir(
+    #         movie['title'].encode('utf-8'), 'load_movie', '{}/{}'.format(__TMDB_IMAGE_BASE__, movie['poster_path']),
+    #         '{}/{}'.format(__TMDB_IMAGE_BASE__, movie['backdrop_path']), movie['overview'].encode('utf-8'), '1',
+    #         movie['id'], True
+    #     )
 
 
 def movie_search():
@@ -160,22 +222,19 @@ def movie_discover():
         {'name': 'Évig', 'key': 'primary_release_date.lte', 'type': xbmcgui.INPUT_NUMERIC,
          'valid': r'[1-2][09][0-9]{2}'},
         {'name': 'Év', 'key': 'primary_release_year', 'type': xbmcgui.INPUT_NUMERIC, 'valid': r'[1-2][09][0-9]{2}'},
+        {'name': 'Min értékelés', 'key': 'vote_average.gte', 'type': xbmcgui.INPUT_NUMERIC,
+         'valid': r'([0-9](\.[0-9]+)?|10)', 'value': 6},
+        {'name': 'Min értékelés szám', 'key': 'vote_count.gte', 'type': xbmcgui.INPUT_NUMERIC, 'value': 500},
         {'name': 'Felnőtt tartalom', 'key': 'include_adult', 'value': False, 'type': bool},
         {'name': 'Keresés indítása', 'key': 'search'}
     ]
     search_params = get_search_params(menu, [])
-    if 'primary_release_date.lte' in search_params and 'primary_release_date.gte' in search_params \
-            and search_params['primary_release_date.gte'] > search_params['primary_release_date.lte']:
-        (search_params['primary_release_date.gte'], search_params['primary_release_date.lte']) = (
-            search_params['primary_release_date.lte'], search_params['primary_release_date.gte'])
-    if 'primary_release_date.gte' in search_params:
-        search_params['primary_release_date.gte'] = '{year}-01-01'.format(
-            year=search_params['primary_release_date.gte'])
-    if 'primary_release_date.lte' in search_params:
-        search_params['primary_release_date.lte'] = '{year}-12-31'.format(
-            year=search_params['primary_release_date.lte'])
+
     if type(search_params) != dict:
         return
+
+    search_params['sort_by'] = 'popularity.desc'
+
     movie_list('Discover', search_params)
 
 
@@ -227,30 +286,41 @@ def get_search_params(menu, required):
     if 'primary_release_date.gte' in search_params:
         search_params['primary_release_date.gte'] = datetime.datetime(
             int(search_params['primary_release_date.gte']) - 1, 12,
-            31).isoformat()
+            31, 23, 59, 59).isoformat()
     if 'primary_release_date.lte' in search_params:
         search_params['primary_release_date.lte'] = datetime.datetime(
             int(search_params['primary_release_date.lte']) + 1, 1,
-            1).isoformat()
+            1, 0, 0, 0).isoformat()
     return search_params
 
 
-def movie_list(engine_name=None, search_params=None):
+def movie_list(engine_name=None, search_params=None, start_page=1):
     if engine_name is None:
         data = json.loads(base64.b64decode(params['data']))
         search_params = data['search_params']
         engine_name = data['engine']
-    engine = eval('tmdb.{}()'.format(engine_name))
+        start_page = data['page']
+
+    imported_engines = ['Trending']
+
+    try:
+        engine = eval('{}()'.format(engine_name)) if engine_name in imported_engines else eval(
+            'tmdb.{}()'.format(engine_name))
+    except Exception as e:
+        dialog.ok('Hiba', e.message)
+        return
+
     if 'page' not in search_params:
         search_params['page'] = int(params['page'])
 
     xbmcplugin.setContent(int(sys.argv[1]), 'movies')
-    xbmcplugin.addSortMethod(int(sys.argv[1]), xbmcplugin.SORT_METHOD_LABEL)
-    xbmcplugin.addSortMethod(int(sys.argv[1]), xbmcplugin.SORT_METHOD_DATE)
-    xbmcplugin.addSortMethod(int(sys.argv[1]), xbmcplugin.SORT_METHOD_VIDEO_YEAR)
-    xbmcplugin.addSortMethod(int(sys.argv[1]), xbmcplugin.SORT_METHOD_TITLE)
-    xbmcplugin.addSortMethod(int(sys.argv[1]), xbmcplugin.SORT_METHOD_VIDEO_RATING)
-    xbmcplugin.addSortMethod(int(sys.argv[1]), xbmcplugin.SORT_METHOD_GENRE)
+    if engine_name != 'Trending':
+        xbmcplugin.addSortMethod(int(sys.argv[1]), xbmcplugin.SORT_METHOD_LABEL)
+        xbmcplugin.addSortMethod(int(sys.argv[1]), xbmcplugin.SORT_METHOD_DATE)
+        xbmcplugin.addSortMethod(int(sys.argv[1]), xbmcplugin.SORT_METHOD_VIDEO_YEAR)
+        xbmcplugin.addSortMethod(int(sys.argv[1]), xbmcplugin.SORT_METHOD_TITLE)
+        xbmcplugin.addSortMethod(int(sys.argv[1]), xbmcplugin.SORT_METHOD_VIDEO_RATING)
+        xbmcplugin.addSortMethod(int(sys.argv[1]), xbmcplugin.SORT_METHOD_GENRE)
 
     try:
         movies = engine.movie(**search_params)
@@ -262,7 +332,37 @@ def movie_list(engine_name=None, search_params=None):
 
     if search_params['page'] < int(movies['total_pages']):
         search_params['page'] += 1
-        movie_list(engine_name, search_params)
+        max_page_per_view = 20
+        if search_params['page'] - start_page == max_page_per_view:
+            if engine_name in __SORT__['movie']:
+                add_dir(
+                    name='Rendezés',
+                    method='movie_sort_by',
+                    icon='sort_icon.png',
+                    fanart='sort_icon.png',
+                    description=__SORT__['movie'][engine_name][
+                        search_params['sort_by']]['name'] if 'sort_by' in search_params and engine_name in __SORT__[
+                        'movie'] else 'Alapértelmezett',
+                    page='1',
+                    data=base64.b64encode(
+                        json.dumps({'engine': engine_name, 'search_params': search_params})),
+                    position='top'
+                )
+
+            add_dir(
+                name='Következő oldal',
+                method='movie_list',
+                icon='a',
+                fanart='a',
+                description='{}/{}'.format(search_params['page'] / max_page_per_view,
+                                           int(movies['total_pages']) / max_page_per_view),
+                page=str(int(params['page']) + 1),
+                data=base64.b64encode(
+                    json.dumps({'engine': engine_name, 'search_params': search_params, 'page': search_params['page']})),
+                position='bottom'
+            )
+        else:
+            movie_list(engine_name, search_params, start_page)
 
 
 def show_movies(movies):
@@ -272,7 +372,8 @@ def show_movies(movies):
 
         info = {
             'title': movie['title'].encode('utf-8'),
-            'plot': movie['overview'].encode('utf-8') if 'overview' in movie else '',
+            'plot': '[B]Értékelés: {}[/B] '.format(movie['vote_average'] if 'vote_average' in movie else 0) + (
+                movie['overview'].encode('utf-8') if 'overview' in movie else ''),
             'originaltitle': movie['original_title'].encode('utf-8') if 'original_title' in movie else '',
             'genre': [__GENRES__[genre_id] for genre_id in movie['genre_ids']] if 'genre_ids' in movie else 'Egyéb',
             'rating': movie['vote_average'] if 'vote_average' in movie else 0
@@ -306,7 +407,7 @@ def load_movie():
         xbmcgui.Dialog().ok('error', e.message)
 
 
-def add_dir(name, method, icon, fanart, description, page, data=None, is_playable=False, info=None, bottom=False):
+def add_dir(name, method, icon, fanart, description, page, data=None, is_playable=False, info=None, position=None):
     icon = icon if re.match(r'^http(s)?:\/\/.*', icon) else get_media(icon)
     fanart = fanart if re.match(r'^http(s)?:\/\/.*', fanart) else get_media(fanart)
     data = str({}) if data is None else data
@@ -319,14 +420,35 @@ def add_dir(name, method, icon, fanart, description, page, data=None, is_playabl
     list_item = xbmcgui.ListItem(name, iconImage=icon, thumbnailImage=icon)
     list_item.setInfo(type="Video", infoLabels=info)
     list_item.setProperty("Fanart_Image", fanart)
-    if bottom:
-        list_item.setProperty('specialsort', 'bottom')
+    if position:
+        list_item.setProperty('specialsort', position)
     if is_playable:
         list_item.setProperty('IsPlayable', 'true')
         list_item.setProperty('isFolder', 'false')
         list_item.setContentLookup(False)
         list_item.setArt({'icon': icon, 'thumb': icon, 'poster': icon, 'fanart': fanart})
     xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]), url=url, listitem=list_item, isFolder=True)
+
+
+def movie_sort_by():
+    data = json.loads(base64.b64decode(params['data']))
+    search_params = data['search_params']
+    engine_name = data['engine']
+    context_menu = [
+        '[B][COLOR yellow]{}[/COLOR][/B]'.format(__SORT__['movie'][engine_name][option]['name']) if option ==
+                                                                                                    search_params[
+                                                                                                        'sort_by'] else
+        __SORT__['movie'][engine_name][option]['name'] for option in __SORT__['movie'][engine_name].keys()]
+    menu_index = dialog.contextmenu(context_menu)
+    if menu_index > -1:
+        search_params['sort_by'] = __SORT__['movie'][engine_name].keys()[menu_index]
+        search_params['page'] = 1
+        movie_list(engine_name, search_params, 1)
+        finalise('movie_list')
+        xbmc.executebuiltin(
+            'Container.SetSortMethod({})'.format(__SORT__['movie'][engine_name][search_params['sort_by']]['kodi']))
+        if re.search(r'\.desc', search_params['sort_by']):
+            xbmc.executebuiltin('Container.SetSortDirection')
 
 
 def get_params():
@@ -343,6 +465,16 @@ def get_params():
     return list_of_params
 
 
+def finalise(method):
+    if method not in ['load_movie', 'movie_sort_by']:
+        xbmcplugin.endOfDirectory(int(sys.argv[1]))
+        list_views = ['movie_folder', 'tv_folder', 'main_folders']
+        if method in list_views or method is None:
+            xbmc.executebuiltin('Container.SetViewMode({})'.format(55))
+        else:
+            xbmc.executebuiltin('Container.SetViewMode({})'.format(51))
+
+
 params = get_params()
 
 try:
@@ -352,17 +484,4 @@ except:
     method = None
     main_folders()
 
-if method not in ['load_movie']:
-    xbmcplugin.endOfDirectory(int(sys.argv[1]))
-    list_views = ['movie_folder', 'main_folders', 'tv_folder']
-    if method not in list_views:
-        xbmc.executebuiltin('Container.SetViewMode({})'.format(51))
-    else:
-        xbmc.executebuiltin('Container.SetViewMode({})'.format(55))
-        # try:
-        #     for i in range(50, 60):
-        #         xbmcgui.Dialog().notification('i', str(i))
-        #         xbmc.executebuiltin('Container.SetViewMode({})'.format(i))
-        #         time.sleep(1)
-        # except Exception as e:
-        #     xbmcgui.Dialog().ok('error', e.message)
+finalise(method)
