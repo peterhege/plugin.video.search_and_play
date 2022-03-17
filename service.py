@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 import datetime
 import threading
+import time
 
 import xbmcgui
 
-from resources.lib import qbittorrent_driver
+from resources.lib import qbittorrent_driver, available_manager
 from resources.lib.control import get_media
 
 xbmcgui.Dialog().notification('Search and Play', 'Háttérfolymat elindult', get_media('icon.png'))
@@ -33,3 +34,6 @@ def run(key, period):
 while True:
     if run('space_free', '5 minutes'):
         start(qbittorrent_driver.free_up_storage_space)
+    if run('download', '1 hours'):
+        start(available_manager.research_movies)
+    time.sleep(.5)

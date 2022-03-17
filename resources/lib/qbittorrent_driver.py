@@ -67,12 +67,7 @@ def init():
     INITED = True
 
 
-def start(torrent_file, save_path, category):
-    init()
-    download(torrent_file, save_path, category)
-
-
-def download(torrent_file, save_path, category):
+def download(torrent_file, save_path, category, show_dialog=True):
     init()
     data = {'savepath': save_path, 'category': 'search_and_play', 'tags': category}
     buffer = open(torrent_file, 'rb')
@@ -106,6 +101,9 @@ def download(torrent_file, save_path, category):
             rename_torrent_file(torrent_info['hash'], old_path.encode('utf-8'), new_path.encode('utf-8'))
             break
         REPLACE_FILE_NAME = None
+
+    if not show_dialog:
+        return torrent_info
 
     play_from = float(setting('play_from'))
 
@@ -203,34 +201,17 @@ def free_up_storage_space():
     if not oldest:
         return
 
-    path = os.path.join(oldest['save_path'], oldest['name']).encode('utf-8')
-    library_data = library_driver.find_by_path(path)
-
-    tmdb.API_KEY = setting('tmdb_key')
-    movie = tmdb.Find(library_data['result']['movies'][0]['imdbnumber']).info(
-        language=xbmc.getLanguage(xbmc.ISO_639_1),
-        external_source='imdb_id'
-    )['movie_results'][0]
-
-    download_link = 'plugin://plugin.video.search_and_play/?data={}&method=load_movie&page=1'.format(movie['id'])
+    try:
+        path = os.path.join(oldest['save_path'], oldest['name']).encode('utf-8')
+        library_data = library_driver.find_movie_by_path(path)['result']['movies'][0]
+        library_driver.remove_movie(library_data['movieid'])
+    except Exception as e:
+        library_data = {'title': oldest['name']}
 
     remove_torrents([oldest['hash']])
 
-    for i in range(100):
-        if not os.path.exists(path):
-            os.mkdir(path)
-            break
-        time.sleep(1)
-
-    strm_file = os.path.join(
-        path,
-        '{} {}.strm'.format(movie['title'].encode('utf-8'), movie['release_date'][:4])
-    )
-
-    with open(strm_file.decode('utf-8'), 'w') as f:
-        f.write(download_link)
-
-    xbmcgui.Dialog().notification('Search and Play', '{} torrent törölve'.format(oldest['name']), get_media('icon.png'))
+    xbmcgui.Dialog().notification('Search and Play', '{} törölve'.format(library_data['title'].encode('utf-8')),
+                                  get_media('icon.png'))
 
 
 def remove_torrents(hashes):

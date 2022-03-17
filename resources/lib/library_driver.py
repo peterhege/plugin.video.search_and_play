@@ -36,11 +36,28 @@ def for_movie(tmdb_data, properties=None):
         return None
 
 
-def find_by_path(path):
+def find_movie_by_path(path):
     query = {"jsonrpc": "2.0", "method": 'VideoLibrary.GetMovies', "params": {
         "properties": ['title', 'resume', 'originaltitle', 'file', 'imdbnumber'],
         "sort": {"method": 'title'},
         "filter": {"field": "path", "operator": "contains", "value": path},
+    }, "id": 1}
+
+    response = json.loads(unicode(xbmc.executeJSONRPC(json.dumps(query)), 'utf-8', errors='ignore'))
+    if 'error' in response:
+        xbmcgui.Dialog().notification('Hiba {}'.format(response['error']['code']), response['error']['message'],
+                                      xbmcgui.NOTIFICATION_ERROR)
+        return None
+
+    if not response['result']:
+        return None
+
+    return response
+
+
+def remove_movie(movie_id):
+    query = {"jsonrpc": "2.0", "method": 'VideoLibrary.RemoveMovie', "params": {
+        "movieid": movie_id
     }, "id": 1}
 
     response = json.loads(unicode(xbmc.executeJSONRPC(json.dumps(query)), 'utf-8', errors='ignore'))

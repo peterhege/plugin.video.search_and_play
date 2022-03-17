@@ -13,7 +13,6 @@ except:
 
 def for_movie(tmdb_data):
     if re.search('netflix', tmdb_data['homepage']):
-        xbmcgui.Dialog().ok('homepage', 'netflix')
         return re.search('[0-9]+$', tmdb_data['homepage']).group()
     return None
 

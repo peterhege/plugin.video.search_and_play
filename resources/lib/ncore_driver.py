@@ -9,7 +9,7 @@ import xbmc
 import xbmcaddon
 import xbmcgui
 import requests
-from resources.lib import settings_repository, context_factory, available_manager
+from resources.lib import settings_repository, context_factory
 from resources.lib.control import setting
 import htmlement
 
@@ -78,10 +78,10 @@ def check(tmdb_data):
     if torrents:
         return language_menu(base64.b64encode(json.dumps(torrents)))
 
-    search_job(tmdb_data['id'])
+    search_job(tmdb_data['id'], 'movie')
 
 
-def search_job(tmdb_id, language=None, quality=None):
+def search_job(tmdb_id, video_type, language=None, quality=None):
     looking = xbmcgui.Dialog().yesno(
         'Nem található!', 'Figyeljem hogy mikor elérhető?'
     )
@@ -96,6 +96,7 @@ def search_job(tmdb_id, language=None, quality=None):
         languages = [LANGUAGES.keys()[i] for i in range(len(LANGUAGES.keys())) if i in languages]
     else:
         languages = [language]
+
     qualities = []
     if will_download:
         if not quality:
@@ -103,7 +104,10 @@ def search_job(tmdb_id, language=None, quality=None):
             qualities = [QUALITIES[i] for i in range(len(QUALITIES)) if i in qualities]
         else:
             qualities = [quality]
-    available_manager.search_job(tmdb_id, languages, will_download, qualities)
+
+    from resources.lib import available_manager
+
+    available_manager.search_job(tmdb_id, languages, will_download, video_type, qualities)
     xbmcgui.Dialog().ok('Kész', 'Szólok ha találok valamit ;)')
 
 
@@ -229,7 +233,7 @@ def language_menu(torrents):
             )
             context_menu[menu_key] = menu[language]
         else:
-            menu_key = 'ncore_driver.search_job({id},{language})'.format(id=TMDB_DATA['id'], language=language)
+            menu_key = 'ncore_driver.search_job({id},movie,{language})'.format(id=TMDB_DATA['id'], language=language)
             context_menu[menu_key] = '[COLOR red][B]{lang}[/B][/COLOR] (Nincs)'.format(lang=LANGUAGES[language.lower()])
 
     context_factory.show(context_menu, prev_key)
@@ -244,7 +248,7 @@ def download_menu(qualities, language):
 
     for quality in QUALITIES:
         if quality not in qualities.values() and 'HD {}'.format(quality) not in qualities.values():
-            menu_key = 'ncore_driver.search_job({id},{language},{quality})'.format(
+            menu_key = 'ncore_driver.search_job({id},movie,{language},{quality})'.format(
                 id=TMDB_DATA['id'], language=language, quality=quality
             )
             menu[menu_key] = '[COLOR red][B]{quality}[/B][/COLOR] (Nincs)'.format(quality=quality)
@@ -256,7 +260,7 @@ def match(m, default=None):
     return m.group() if m and m.group() else default
 
 
-def download(torrent_id):
+def download(torrent_id, show_dialog=True):
     try:
         from resources.lib import qbittorrent_driver
         url = '{endpoint}?action=details&id={torrent_id}'.format(endpoint=endpoint('torrents'), torrent_id=torrent_id)
@@ -282,7 +286,7 @@ def download(torrent_id):
                 setting('qbittorrent_movies_path', save_path)
             else:
                 return
-        qbittorrent_driver.start(torrent_file, save_path, 'movies')
+        return qbittorrent_driver.download(torrent_file, save_path, 'movies', show_dialog)
     except Exception as e:
         xbmcgui.Dialog().notification('nCore Hiba', e.message, xbmcgui.NOTIFICATION_ERROR)
 
