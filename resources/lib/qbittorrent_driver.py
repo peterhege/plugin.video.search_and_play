@@ -96,7 +96,7 @@ def download(torrent_file, save_path, category, show_dialog=True):
             old_file = os.path.basename(old_path)
             old_file = '.'.join(old_file.split('.')[:-1])
             new_path = old_path.split(separator)
-            new_path[-1] = new_path[-1].replace(old_file, REPLACE_FILE_NAME.decode('utf-8'))
+            new_path[-1] = new_path[-1].replace(old_file, REPLACE_FILE_NAME.replace(':', '').decode('utf-8'))
             new_path = separator.join(new_path)
             rename_torrent_file(torrent_info['hash'], old_path.encode('utf-8'), new_path.encode('utf-8'))
             break

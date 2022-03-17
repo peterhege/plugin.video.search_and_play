@@ -22,4 +22,16 @@
                  visible="eq(-1,true)"
                  subsetting="true"/>
     </category>
+    <category label="Értesítések">
+        <setting label="Email" type="lsep"/>
+        <setting label="Host" id="email_host" type="text"/>
+        <setting label="Port" id="email_port" type="text"/>
+        <setting label="Felhasználónév" id="email_user" type="text"/>
+        <setting label="Jelszó" id="email_pwd" type="text"/>
+        <setting label="Címzett 1" id="email_address_0" type="text"/>
+        <setting label="Címzett 2" id="email_address_1" type="text"/>
+        <setting label="Címzett 3" id="email_address_2" type="text"/>
+        <setting label="Címzett 4" id="email_address_3" type="text"/>
+        <setting label="Címzett 5" id="email_address_4" type="text"/>
+    </category>
 </settings>

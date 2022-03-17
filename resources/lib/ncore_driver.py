@@ -75,8 +75,8 @@ def check(tmdb_data):
     tmdb_data = json.loads(base64.b64decode(tmdb_data))
     qbittorrent_driver.TMDB_DATA = tmdb_data
     torrents = search_movie(tmdb_data)
-    if torrents:
-        return language_menu(base64.b64encode(json.dumps(torrents)))
+    # if torrents:
+    #     return language_menu(base64.b64encode(json.dumps(torrents)))
 
     search_job(tmdb_data['id'], 'movie')
 

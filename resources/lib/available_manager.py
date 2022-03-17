@@ -4,6 +4,7 @@ import json
 import os
 import threading
 import time
+import smtplib
 
 import xbmc
 import xbmcaddon
@@ -12,9 +13,12 @@ import xbmcgui
 
 from resources.lib import ncore_driver, qbittorrent_driver, library_driver
 from resources.lib.control import setting, get_media
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
 AVAILABLE_FILE = os.path.join(xbmc.translatePath(xbmcaddon.Addon().getAddonInfo('profile')).decode('utf-8'),
                               'download.json')
+__TMDB_IMAGE_BASE__ = 'https://image.tmdb.org/t/p/original'
 
 if not os.path.exists(AVAILABLE_FILE):
     with open(AVAILABLE_FILE, 'w') as df:
@@ -90,18 +94,14 @@ def research_movie(tmdb_id, query):
     torrent_id = found[0]
 
     if query['download']:
-        msg = 'Megkezdtem a(z) {} letöltését'
         torrent_info = ncore_driver.download(torrent_id, False)
         x = threading.Thread(target=download_watch, args=(torrent_info, tmdb_data))
         x.start()
-    else:
-        msg = 'A(z) {} film letölthető'
 
     del search['movie'][tmdb_id]
     save()
 
-    xbmcgui.Dialog().notification('Search and Play', msg.format(tmdb_data['title'].encode('utf-8')),
-                                  get_media('icon.png'))
+    notification(tmdb_data, 'start' if query['download'] else 'available')
 
 
 def download_watch(torrent_info, tmdb_data):
@@ -112,6 +112,67 @@ def download_watch(torrent_info, tmdb_data):
         time.sleep(10)
 
     library_driver.update_library()
-    xbmcgui.Dialog().notification('Search and Play',
-                                  'A(z) {} letöltése befejeződött.'.format(tmdb_data['title'].encode('utf-8')),
-                                  get_media('icon.png'))
+    notification(tmdb_data, 'end')
+
+
+def notification(tmdb_data, notification_type):
+    s = xbmcaddon.Addon().getSetting
+    if notification_type == 'available':
+        message = 'A(z) {} film letölthető'
+    elif notification_type == 'start':
+        message = 'Megkezdtem a(z) {} letöltését'
+    else:
+        message = 'A(z) {} letöltése befejeződött.'
+
+    message = message.format(tmdb_data['title'].encode('utf-8'))
+
+    xbmcgui.Dialog().notification('Search and Play', message, get_media('icon.png'))
+
+    if not (s('email_host') and s('email_port') and s('email_user') and s('email_pwd')):
+        return
+
+    recipients = []
+    for i in range(5):
+        try:
+            if s('email_address_{}'.format(i)):
+                recipients.append(s('email_address_{}'.format(i)))
+        except Exception as e:
+            pass
+
+    if not recipients:
+        return
+    try:
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = '{} - {}'.format(tmdb_data['title'].encode('utf-8'), time.time())
+        msg['From'] = 'Search and Play <{}>'.format(s('email_user'))
+        msg['To'] = ', '.join(recipients)
+
+        html = """\
+        <html>
+          <head></head>
+          <body style="text-align:center;">
+            <h1>{title}</h1>
+            <img style="width:400px;border-radius:10px;" src="{img}">
+          </body>
+        </html>
+        """.format(
+            title=message,
+            img='{}/{}'.format(__TMDB_IMAGE_BASE__, tmdb_data['poster_path'])
+        )
+
+        part1 = MIMEText(message, 'plain')
+        part2 = MIMEText(html, 'html')
+
+        msg.attach(part1)
+        msg.attach(part2)
+
+        mail = smtplib.SMTP(s('email_host'), s('email_port'))
+
+        mail.ehlo()
+        mail.starttls()
+
+        mail.login(s('email_user'), s('email_pwd'))
+        mail.sendmail(s('email_user'), recipients, msg.as_string())
+        mail.quit()
+    except Exception as e:
+        xbmcgui.Dialog().ok('Hiba', e.message, xbmcgui.NOTIFICATION_ERROR)
