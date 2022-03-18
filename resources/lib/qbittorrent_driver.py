@@ -114,7 +114,7 @@ def download(torrent_file, save_path, category, show_dialog=True):
         nolabel='Csak letöltés', yeslabel='Lejátszás'
     )
     if not play:
-        return
+        return torrent_info
 
     toggle_sequential_download(torrent_info['hash'])
 
@@ -274,3 +274,18 @@ def toggle_sequential_download(hash):
     init()
     url = '{endpoint}?hashes={hash}'.format(endpoint=endpoint('torrents/toggleSequentialDownload'), hash=hash)
     response = session.get(url)
+
+
+def get_pending():
+    init()
+    url = '{endpoint}?filter=downloading'.format(endpoint=endpoint('torrents/info'))
+    response = session.get(url)
+    return json.loads(response.content)
+
+
+def get_by_hash(hashes):
+    hashes = '|'.join(hashes)
+    init()
+    url = '{endpoint}?hashes={hashes}'.format(endpoint=endpoint('torrents/info'), hashes=hashes)
+    response = session.get(url)
+    return json.loads(response.content)

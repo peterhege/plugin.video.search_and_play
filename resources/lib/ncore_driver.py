@@ -9,7 +9,7 @@ import xbmc
 import xbmcaddon
 import xbmcgui
 import requests
-from resources.lib import settings_repository, context_factory
+from resources.lib import settings_repository, context_factory, download_manager
 from resources.lib.control import setting
 import htmlement
 
@@ -32,7 +32,7 @@ LANGUAGES = {
     'eng': 'Angol'
 }
 QUALITIES = ['SD', '720p', '1080p', '2160p']
-TMDB_DATA = []
+TMDB_DATA = {}
 if not os.path.exists(CACHE_DIR):
     os.mkdir(CACHE_DIR)
 if not os.path.exists(TORRENT_CACHE_DIR):
@@ -286,7 +286,9 @@ def download(torrent_id, show_dialog=True):
                 setting('qbittorrent_movies_path', save_path)
             else:
                 return
-        return qbittorrent_driver.download(torrent_file, save_path, 'movies', show_dialog)
+        torrent_info = qbittorrent_driver.download(torrent_file, save_path, 'movies', show_dialog)
+        if torrent_info:
+            download_manager.add_pending(torrent_info['hash'], TMDB_DATA['id'])
     except Exception as e:
         xbmcgui.Dialog().notification('nCore Hiba', e.message, xbmcgui.NOTIFICATION_ERROR)
 

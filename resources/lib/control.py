@@ -2,7 +2,11 @@
 import importlib
 import os
 import re
+import smtplib
+import time
 import urllib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
 import xbmc
 import xbmcaddon
@@ -12,6 +16,7 @@ from resources.lib import settings_repository
 
 addon_info = xbmcaddon.Addon().getAddonInfo
 dialog = xbmcgui.Dialog()
+__TMDB_IMAGE_BASE__ = 'https://image.tmdb.org/t/p/original'
 
 
 def setting(setting_id, value=None):
@@ -61,3 +66,66 @@ def call_user_func(s):
             pass
 
     return getattr(module, method)(*args)
+
+
+def notification(tmdb_data, notification_type):
+    s = xbmcaddon.Addon().getSetting
+    if notification_type == 'available':
+        message = 'A(z) {} film letölthető'
+    elif notification_type == 'start':
+        message = 'Megkezdtem a(z) {} letöltését'
+    else:
+        message = 'A(z) {} letöltése befejeződött.'
+
+    message = message.format(tmdb_data['title'].encode('utf-8'))
+
+    xbmcgui.Dialog().notification('Search and Play', message, get_media('icon.png'))
+
+    if not (s('email_host') and s('email_port') and s('email_user') and s('email_pwd')):
+        return
+
+    recipients = []
+    for i in range(5):
+        try:
+            if s('email_address_{}'.format(i)):
+                recipients.append(s('email_address_{}'.format(i)))
+        except Exception as e:
+            pass
+
+    if not recipients:
+        return
+    try:
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = '{} - {}'.format(tmdb_data['title'].encode('utf-8'), time.time())
+        msg['From'] = 'Search and Play <{}>'.format(s('email_user'))
+        msg['To'] = ', '.join(recipients)
+
+        html = """\
+        <html>
+          <head></head>
+          <body style="text-align:center;">
+            <h1>{title}</h1>
+            <img style="width:400px;border-radius:10px;" src="{img}">
+          </body>
+        </html>
+        """.format(
+            title=message,
+            img='{}/{}'.format(__TMDB_IMAGE_BASE__, tmdb_data['poster_path'])
+        )
+
+        part1 = MIMEText(message, 'plain')
+        part2 = MIMEText(html, 'html')
+
+        msg.attach(part1)
+        msg.attach(part2)
+
+        mail = smtplib.SMTP(s('email_host'), s('email_port'))
+
+        mail.ehlo()
+        mail.starttls()
+
+        mail.login(s('email_user'), s('email_pwd'))
+        mail.sendmail(s('email_user'), recipients, msg.as_string())
+        mail.quit()
+    except Exception as e:
+        xbmcgui.Dialog().ok('Hiba', e.message, xbmcgui.NOTIFICATION_ERROR)
