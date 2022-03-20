@@ -354,6 +354,7 @@ def movie_list(engine_name=None, search_params=None, start_page=1):
                     json.dumps({'engine': engine_name, 'search_params': search_params, 'page': search_params['page']})),
                 position='bottom'
             )
+            finalise('movie_list', engine_name)
         else:
             movie_list(engine_name, search_params, start_page)
 
@@ -458,14 +459,22 @@ def get_params():
     return list_of_params
 
 
-def finalise(method):
-    if method not in ['load_movie', 'movie_sort_by']:
-        xbmcplugin.endOfDirectory(int(sys.argv[1]))
-        list_views = ['movie_folder', 'tv_folder', 'main_folders']
-        if method in list_views or method is None:
-            xbmc.executebuiltin('Container.SetViewMode({})'.format(55))
-        else:
-            xbmc.executebuiltin('Container.SetViewMode({})'.format(51))
+def finalise(method, args=None):
+    if method in ['load_movie', 'movie_sort_by']:
+        return
+
+    xbmcplugin.endOfDirectory(int(sys.argv[1]))
+
+    list_views = ['movie_folder', 'tv_folder', 'main_folders']
+
+    if method in list_views or method is None:
+        xbmc.executebuiltin('Container.SetViewMode({})'.format(55))
+    else:
+        xbmc.executebuiltin('Container.SetViewMode({})'.format(51))
+
+    if method in ['movie_random']:
+        xbmc.executebuiltin('Container.SetSortMethod({})'.format(KODI_SORT_METHOD_RATING))
+        xbmc.executebuiltin('Container.SetSortDirection')
 
 
 params = get_params()
@@ -477,4 +486,5 @@ except:
     method = None
     main_folders()
 
-finalise(method)
+if method != 'movie_list':
+    finalise(method)
