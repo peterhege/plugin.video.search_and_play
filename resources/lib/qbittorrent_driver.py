@@ -80,7 +80,7 @@ def download(torrent_file, save_path, category, show_dialog=True):
         pass
     if response.status_code != 200:
         xbmcgui.Dialog().ok('qBittorrent hiba', str(response.content))
-        return
+        return None
 
     time.sleep(1)
     torrent_info = get_last_torrent()
@@ -127,15 +127,29 @@ def download(torrent_file, save_path, category, show_dialog=True):
     while progress < play_from:
         time.sleep(.5)
         progress = get_torrent_progress(torrent_info['hash'])
-        progress_dialog.update(int(progress * 100), '[{}%] {} letöltése{}'.format(
+        progress_dialog.update(int((progress * 100) / play_from), '[{}%] {} letöltése{}'.format(
             math.floor(progress * 10000) / 100,
             TMDB_DATA['title'].encode('utf-8'),
             ('.' * i)
         ))
-        if progress > 0.05 and not updated:
+
+        if progress >= min(0.05, play_from) and not updated:
             library_driver.update_library()
             updated = True
+
+        if progress_dialog.iscanceled():
+            remove_torrents([torrent_info['hash']])
+            path = os.path.join(torrent_info['save_path'], torrent_info['name']).encode('utf-8')
+            try:
+                library_data = library_driver.find_movie_by_path(path)['result']['movies'][0]
+                library_driver.remove_movie(library_data['movieid'])
+            except Exception as e:
+                pass
+            progress_dialog.close()
+            return None
+
         i = (i + 1) % 4
+
     progress_dialog.close()
 
     movie = library_driver.for_movie(TMDB_DATA)
