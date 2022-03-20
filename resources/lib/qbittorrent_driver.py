@@ -113,9 +113,11 @@ def download(torrent_file, save_path, category, show_dialog=True):
             play_from=play_from),
         nolabel='Csak letöltés', yeslabel='Lejátszás'
     )
+
     if not play:
         return torrent_info
 
+    set_torrent_first(torrent_info['hash'])
     toggle_sequential_download(torrent_info['hash'])
 
     progress_dialog = xbmcgui.DialogProgress()
@@ -167,6 +169,13 @@ def get_torrent_info(hash):
     url = '{endpoint}?hashes={hash}'.format(endpoint=endpoint('torrents/info'), hash=hash)
     response = session.get(url)
     return json.loads(response.content)[0]
+
+
+def set_torrent_first(hash):
+    init()
+    url = '{endpoint}'.format(endpoint=endpoint('torrents/topPrio'))
+    response = session.post(url, {'hashes': hash})
+    return response.content
 
 
 def get_oldest_torrent():
