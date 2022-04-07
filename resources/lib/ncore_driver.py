@@ -14,11 +14,16 @@ from resources.lib.control import setting
 import htmlement
 
 try:
+    from typing import Union
+except:
+    pass
+
+try:
     sys
 except:
     import sys
 
-session = None
+session = None  # type: Union[requests.Session,None]
 base_url = 'https://ncore.pro'
 endpoint = lambda endpoint: '{base}/{endpoint}.php'.format(base=base_url, endpoint=endpoint)
 cookie_file_name = os.path.join(

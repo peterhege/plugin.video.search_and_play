@@ -57,3 +57,10 @@ def watch():
             json.dump(pending, df)
     except:
         pass
+
+    try:
+        if qbittorrent_driver.session:
+            qbittorrent_driver.session.close()
+    except:
+        pass
+    qbittorrent_driver.session = None

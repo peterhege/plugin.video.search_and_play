@@ -34,4 +34,11 @@
         <setting label="Címzett 4" id="email_address_3" type="text"/>
         <setting label="Címzett 5" id="email_address_4" type="text"/>
     </category>
+    <category label="Web Interface">
+        <setting id="web_interface" type="bool" label="Engedélyezve" default="false"/>
+        <setting id="web_interface_user" type="text" label="Felhasználónév" default="admin" visible="eq(-1,true)"/>
+        <setting id="web_interface_pwd" type="text" label="Jelszó" default="admin" visible="eq(-2,true)"/>
+        <setting label="Port" id="web_interface_port" type="number" default="8082" visible="eq(-3,true)"/>
+        <setting label="Debug" id="web_interface_debug" type="bool" default="false" visible="eq(-4,true)"/>
+    </category>
 </settings>

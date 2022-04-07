@@ -10,19 +10,22 @@ import requests
 import xbmc
 import xbmcaddon
 import xbmcgui
-import xbmcplugin
-import tmdbsimple as tmdb
 
 from resources.lib import settings_repository, library_driver, context_factory
 from resources.lib.control import setting, dialog, get_media
 
-REPLACE_FILE_NAME = None
-TMDB_DATA = {}
+try:
+    from typing import Union
+except:
+    pass
 
 try:
     sys
 except:
     import sys
+
+REPLACE_FILE_NAME = None
+TMDB_DATA = {}
 
 base_url = setting('qbittorrent_host')
 if not base_url:
@@ -32,7 +35,7 @@ if not base_url:
         sys.exit()
 base_url = base_url.rstrip('/')
 
-session = None
+session = None  # type: Union[requests.Session,None]
 
 endpoint = lambda endpoint: '{base}/api/v2/{endpoint}'.format(base=base_url, endpoint=endpoint)
 cookie_file_name = os.path.join(
@@ -235,6 +238,14 @@ def free_up_storage_space():
 
     xbmcgui.Dialog().notification('Search and Play', '{} törölve'.format(library_data['title'].encode('utf-8')),
                                   get_media('icon.png'))
+
+    global session
+    try:
+        if session:
+            session.close()
+    except:
+        pass
+    session = None
 
 
 def remove_torrents(hashes):

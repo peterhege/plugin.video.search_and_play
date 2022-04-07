@@ -1,8 +1,9 @@
-<addon id="plugin.video.search_and_play" name="Search and Play" provider-name="peterhege" version="0.1.28">
+<addon id="plugin.video.search_and_play" name="Search and Play" provider-name="peterhege" version="0.1.36">
     <requires>
         <import addon="xbmc.python" version="2.1.0" />
         <import addon="script.module.tmdbsimple" version="2.2.0" />
         <import addon="script.module.htmlement" version="1.0.0" />
+        <import addon="script.module.bottle" version="0.12.8" />
     </requires>
     <extension library="default.py" point="xbmc.python.pluginsource">
         <provides>video</provides>

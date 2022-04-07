@@ -2,13 +2,12 @@
 
 import json
 import os
-import time
 
 import xbmc
 import xbmcaddon
 import tmdbsimple as tmdb
 
-from resources.lib import ncore_driver, qbittorrent_driver, library_driver, control
+from resources.lib import ncore_driver, control
 from resources.lib.control import setting
 
 AVAILABLE_FILE = os.path.join(
@@ -66,6 +65,13 @@ def research_movies():
             research_movie(tmdb_id, query)
         except Exception as e:
             return
+
+    try:
+        if ncore_driver.session:
+            ncore_driver.session.close()
+    except:
+        pass
+    ncore_driver.session = None
 
 
 def research_movie(tmdb_id, query):

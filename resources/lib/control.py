@@ -26,6 +26,8 @@ def setting(setting_id, value=None):
     value = xbmcaddon.Addon().getSetting(setting_id)
     if not value:
         return settings_repository.setting(setting_id)
+    if value in ['false', 'true']:
+        return value == 'true'
     return value
 
 
