@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 import os
+
+import xbmc
 import xbmcaddon
+import xbmcgui
 
 from bottle import template, Bottle, ServerAdapter, auth_basic
 from resources.lib.control import setting
@@ -63,14 +66,16 @@ def index():
     return template(get_template('index'))
 
 
-bottle_server = WSGIRefServer(host='localhost', port=setting('web_interface_port'))
+bottle_server = None  # type: Union[None,WSGIRefServer]
 
 
 def start():
+    global bottle_server
+    bottle_server = WSGIRefServer(host='0.0.0.0', port=setting('web_interface_port'))
     try:
         bottle_app.run(server=bottle_server)
-    except:
-        pass
+    except Exception as e:
+        xbmcgui.Dialog().notification('Error', str(e))
 
 
 def stop():
@@ -78,6 +83,7 @@ def stop():
         return
     try:
         bottle_server.srv.shutdown()
+        bottle_server.srv.server_close()
         bottle_app.close()
-    except:
-        pass
+    except Exception as e:
+        xbmcgui.Dialog().notification('Error', str(e))
