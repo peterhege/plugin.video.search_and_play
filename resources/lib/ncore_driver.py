@@ -373,6 +373,7 @@ def news():
 
 def search_news(pages=None):
     import tmdbsimple as tmdb
+    global FOUND_NEW_TORRENT
 
     if pages is None:
         pages = list(range(1, 4))
@@ -396,7 +397,6 @@ def search_news(pages=None):
             if not torrent_id:
                 continue
             if FOUND_NEW_TORRENT is None:
-                global FOUND_NEW_TORRENT
                 FOUND_NEW_TORRENT = torrent_id
             if torrent_id == LAST_NEW_TORRENT:
                 return found
