@@ -189,24 +189,34 @@ def search_movie(tmdb_data, pages=None, found=None, second=None):
         try:
             torrent_a = row.find('.//*[@class="torrent_txt"]/a')
             torrent_id = re.search('id=([0-9]+)', torrent_a.get('href')).group(1)
+            torrent_title = torrent_a.text if torrent_a.text else torrent_a.find('nobr').text
+            language = match(re.search(r'hun$', row.find('.//*[@class="box_alap_img"]/a').get('href')), 'eng')
+
             imdb_id = re.search(
                 r'https:\/\/imdb.com\/title\/([a-z0-9]+)', row.find('.//a[@class="infolink"]').get('href')
             ).group(1)
+
+            found['{}:{}'.format('all', '[B]{}[/B] {}'.format(language, torrent_title))] = torrent_id
+
             if imdb_id and imdb_id != tmdb_data['imdb_id'].encode('utf-8'):
                 continue
-            language = match(re.search(r'hun$', row.find('.//*[@class="box_alap_img"]/a').get('href')), 'eng')
-            torrent_title = [
-                re.search('[1-9][0-9]*[pi]', torrent_a.text if torrent_a.text else torrent_a.find('nobr').text),
-                re.search('[1-9][0-9]*[pi]', row.find('.//*[@class="siterank"]/span').text)
-            ]
-            torrent_title = [m.group() for m in torrent_title if m]
-            quality = torrent_title[0] if torrent_title else 'SD'
+
+            found['{}:{}'.format('imdb_match', '[B]{}[/B] {}'.format(language, torrent_title))] = torrent_id
+
+            quality = [re.search('[1-9][0-9]*[pi]', torrent_title)]
+
+            site_rank = row.find('.//*[@class="siterank"]/span')
+            if site_rank:
+                quality.append(re.search('[1-9][0-9]*[pi]', site_rank.text))
+
+            quality = [m.group() for m in quality if m]
+            quality = quality[0] if quality else 'SD'
 
             key = '{}:{}'.format(language, quality)
             if key not in found:
                 found[key] = torrent_id
         except Exception as e:
-            xbmc.log('ncore_driver.py [183] {}'.format(e.message), xbmc.LOGWARNING)
+            xbmc.log('ncore_driver.py {}'.format(e.message), xbmc.LOGWARNING)
             continue
 
     if len(pages) > 0:
@@ -219,27 +229,56 @@ def search_movie(tmdb_data, pages=None, found=None, second=None):
 def language_menu(torrents):
     prev_key = 'ncore_driver.language_menu({torrents})'.format(torrents=torrents)
     torrents = json.loads(base64.b64decode(torrents))
+
     menu = {}
-    languages = {}
+    sub_menu = {}
     for key in torrents.keys():
         (language, quality) = key.split(':')
-        language_text = LANGUAGES[language.lower()]
-        if language not in languages:
-            languages[language] = {}
-        languages[language][torrents[key]] = quality if quality == 'SD' else 'HD {}'.format(quality)
-        menu[language] = '[B]{lang}[/B] ({count})'.format(lang=language_text, count=len(languages[language].values()))
+        language = language.lower()
+
+        if language not in sub_menu:
+            sub_menu[language] = {}
+
+        try:
+            sub_menu_text = quality if quality == 'SD' else 'HD {}'.format(quality)
+            if language not in LANGUAGES:
+                sub_menu_text = quality
+        except:
+            sub_menu_text = 'ERROR'
+
+        sub_menu[language][torrents[key]] = sub_menu_text
+
+        if language == 'imdb_match':
+            menu[language] = '[COLOR grey]Összes egyezés ({})[/COLOR]'.format(len(sub_menu[language].values()))
+        elif language == 'all':
+            menu[language] = '[COLOR darkgrey]Összes találat ({})[/COLOR]'.format(len(sub_menu[language].values()))
+        elif language in LANGUAGES:
+            language_text = LANGUAGES[language]
+            menu[language] = '[B]{lang}[/B] ({count})'.format(
+                lang=language_text,
+                count=len(sub_menu[language].values())
+            )
 
     context_menu = {}
     for language in LANGUAGES:
         if language in menu:
             menu_key = 'ncore_driver.download_menu({b64},{language})'.format(
-                b64=base64.b64encode(json.dumps(languages[language])),
+                b64=base64.b64encode(json.dumps(sub_menu[language])),
                 language=language
             )
             context_menu[menu_key] = menu[language]
         else:
             menu_key = 'ncore_driver.search_job({id},movie,{language})'.format(id=TMDB_DATA['id'], language=language)
             context_menu[menu_key] = '[COLOR red][B]{lang}[/B][/COLOR] (Nincs)'.format(lang=LANGUAGES[language.lower()])
+
+    for k in ['imdb_match', 'all']:
+        if k not in menu:
+            continue
+        menu_key = 'ncore_driver.download_menu({b64},{language})'.format(
+            b64=base64.b64encode(json.dumps(sub_menu[k])),
+            language=k
+        )
+        context_menu[menu_key] = menu[k]
 
     context_factory.show(context_menu, prev_key)
 
@@ -251,14 +290,15 @@ def download_menu(qualities, language):
         menu_key = 'ncore_driver.download({torrent_id})'.format(torrent_id=torrent_id)
         menu[menu_key] = qualities[torrent_id]
 
-    for quality in QUALITIES:
-        if quality not in qualities.values() and 'HD {}'.format(quality) not in qualities.values():
-            menu_key = 'ncore_driver.search_job({id},movie,{language},{quality})'.format(
-                id=TMDB_DATA['id'], language=language, quality=quality
-            )
-            menu[menu_key] = '[COLOR red][B]{quality}[/B][/COLOR] (Nincs)'.format(quality=quality)
+    if language in LANGUAGES:
+        for quality in QUALITIES:
+            if quality not in qualities.values() and 'HD {}'.format(quality) not in qualities.values():
+                menu_key = 'ncore_driver.search_job({id},movie,{language},{quality})'.format(
+                    id=TMDB_DATA['id'], language=language, quality=quality
+                )
+                menu[menu_key] = '[COLOR red][B]{quality}[/B][/COLOR] (Nincs)'.format(quality=quality)
 
-    context_factory.show(menu)
+    context_factory.show(menu, None, False, language not in LANGUAGES)
 
 
 def match(m, default=None):

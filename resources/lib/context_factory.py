@@ -1,13 +1,15 @@
+# -*- coding: utf-8 -*-
+
 from resources.lib.control import dialog, call_user_func
 
 previous_functions = []
 
 
-def show(menu, this=None, main=False):
+def show(menu, this=None, main=False, select=False):
     global previous_functions
     if main:
         previous_functions = []
-    selected_menu = dialog.contextmenu(menu.values())
+    selected_menu = dialog.select('Opciók', menu.values()) if select else dialog.contextmenu(menu.values())
     if selected_menu > -1:
         if this:
             previous_functions.append(this)

@@ -78,6 +78,7 @@ def research_movie(tmdb_id, query):
     tmdb_data = tmdb.Movies(tmdb_id).info(language=xbmc.getLanguage(xbmc.ISO_639_1))
 
     torrents = ncore_driver.search_movie(tmdb_data)
+
     if not torrents:
         return
 
@@ -85,6 +86,8 @@ def research_movie(tmdb_id, query):
 
     for key, torrent_id in torrents.items():
         (lang, quality) = key.split(':')
+        if lang in ['all', 'imdb_match']:
+            continue
         lang_found = len(query['languages']) == 0 or lang in query['languages']
         quality_found = len(query['qualities']) == 0 or quality in query['qualities']
         if lang_found and quality_found:
