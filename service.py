@@ -6,7 +6,7 @@ import time
 import xbmc
 import xbmcgui
 
-from resources.lib import qbittorrent_driver, available_manager, download_manager, web_interface
+from resources.lib import qbittorrent_driver, available_manager, download_manager, web_interface, ncore_driver
 from resources.lib.control import get_media, setting
 
 xbmcgui.Dialog().notification('Search and Play', 'Háttérfolymat elindult', get_media('icon.png'))
@@ -49,6 +49,8 @@ while not monitor.abortRequested():
         start(available_manager.research_movies, 'download')
     if run('pending', '30 seconds'):
         start(download_manager.watch, 'pending')
+    if run('news', '1 days'):
+        start(ncore_driver.news, 'news')
     if not web_interface_running and setting('web_interface'):
         start(web_interface.start)
         web_interface_running = True
@@ -56,3 +58,5 @@ while not monitor.abortRequested():
         web_interface.stop()
         web_interface_running = False
     time.sleep(.5)
+
+web_interface.stop()

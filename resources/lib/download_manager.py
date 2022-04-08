@@ -8,7 +8,7 @@ import xbmcgui
 import tmdbsimple as tmdb
 
 from resources.lib import qbittorrent_driver, control, library_driver
-from resources.lib.control import setting
+from resources.lib.control import setting, get_media
 
 DOWNLOAD_PENDING_FILE = os.path.join(
     xbmc.translatePath(xbmcaddon.Addon().getAddonInfo('profile')).decode('utf-8'),
@@ -55,12 +55,16 @@ def watch():
 
         with open(DOWNLOAD_PENDING_FILE, 'w') as df:
             json.dump(pending, df)
-    except:
-        pass
+    except Exception as e:
+        xbmcgui.Dialog().notification('Search and Play ERROR', 'download_manager.watch: {}'.format(str(e)),
+                                      get_media('icon.png'))
+        xbmc.log('download_manager.watch Error: {}'.format(str(e)))
 
     try:
         if qbittorrent_driver.session:
             qbittorrent_driver.session.close()
-    except:
-        pass
+    except Exception as e:
+        xbmcgui.Dialog().notification('Search and Play ERROR', 'download_manager.watch: {}'.format(str(e)),
+                                      get_media('icon.png'))
+        xbmc.log('download_manager.watch Error: {}'.format(str(e)))
     qbittorrent_driver.session = None

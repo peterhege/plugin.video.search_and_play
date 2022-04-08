@@ -131,3 +131,8 @@ def notification(tmdb_data, notification_type):
         mail.quit()
     except Exception as e:
         xbmcgui.Dialog().ok('Hiba', e.message, xbmcgui.NOTIFICATION_ERROR)
+
+
+def notice(msg, head=None):
+    head = ': {}'.format(head) if head is not None else ''
+    xbmcgui.Dialog().notification('Search and Play{}'.format(head), msg, get_media('icon.png'))

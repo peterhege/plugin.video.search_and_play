@@ -10,7 +10,7 @@ import xbmcaddon
 import xbmcgui
 import requests
 from resources.lib import settings_repository, context_factory, download_manager
-from resources.lib.control import setting
+from resources.lib.control import setting, notice, __TMDB_IMAGE_BASE__
 import htmlement
 
 try:
@@ -32,16 +32,23 @@ cookie_file_name = os.path.join(
 )
 CACHE_DIR = os.path.join(xbmcaddon.Addon().getAddonInfo('path'), 'cache')
 TORRENT_CACHE_DIR = os.path.join(CACHE_DIR, 'torrents')
+NEWS_CACHE_FILE = os.path.join(CACHE_DIR, 'news.txt')
 LANGUAGES = {
     'hun': 'Magyar',
     'eng': 'Angol'
 }
 QUALITIES = ['SD', '720p', '1080p', '2160p']
 TMDB_DATA = {}
+
 if not os.path.exists(CACHE_DIR):
     os.mkdir(CACHE_DIR)
 if not os.path.exists(TORRENT_CACHE_DIR):
     os.mkdir(TORRENT_CACHE_DIR)
+if not os.path.exists(NEWS_CACHE_FILE):
+    LAST_NEW_TORRENT = None
+else:
+    with open(NEWS_CACHE_FILE, 'r') as f:
+        LAST_NEW_TORRENT = f.read()
 
 
 def for_movie(tmdb_data):
@@ -216,7 +223,7 @@ def search_movie(tmdb_data, pages=None, found=None, second=None):
             if key not in found:
                 found[key] = torrent_id
         except Exception as e:
-            xbmc.log('ncore_driver.py {}'.format(e.message), xbmc.LOGWARNING)
+            xbmc.log('ncore_driver.search_movie {}'.format(e.message), xbmc.LOGWARNING)
             continue
 
     if len(pages) > 0:
@@ -338,7 +345,134 @@ def download(torrent_id, show_dialog=True):
         xbmcgui.Dialog().notification('nCore Hiba', e.message, xbmcgui.NOTIFICATION_ERROR)
 
 
+def news():
+    s = xbmcaddon.Addon().getSetting
+    if not (s('email_host') and s('email_port') and s('email_user') and s('email_pwd') and s('web_interface')):
+        return
+
+    import tmdbsimple as tmdb
+    try:
+        tmdb.API_KEY = setting('tmdb_key')
+        login(setting('ncore_user'), setting('ncore_pass'))
+    except Exception as e:
+        notice('ncore_driver.news: {}'.format(str(e)), 'ERROR')
+        return
+
+    new_torrents = search_news()
+    if not new_torrents:
+        return
+
+    # TODO
+    # with open(NEWS_CACHE_FILE, 'w') as f:
+    #     f.write(new_torrents[0]['torrent_id'])
+
+
+def search_news(pages=None):
+    import tmdbsimple as tmdb
+
+    if pages is None:
+        pages = list(range(1, 4))
+    if len(pages) == 0:
+        return []
+
+    page = pages.pop(0)
+
+    url = '{endpoint}?tipus=kivalasztottak_kozott&kivalasztott_tipus=xvid,hd,xvid_hun,hd_hun&oldal={page}' \
+        .format(endpoint=endpoint('torrents'), page=page)
+    root = htmlement.fromstring(get_content(url))
+
+    rows = root.findall('.//*[@class="box_torrent"]')
+
+    found = []
+
+    for row in rows:
+        try:
+            torrent_a = row.find('.//*[@class="torrent_txt"]/a')
+            torrent_id = re.search('id=([0-9]+)', torrent_a.get('href')).group(1)
+            if torrent_id == LAST_NEW_TORRENT:
+                return found
+            torrent_title = torrent_a.text if torrent_a.text else torrent_a.find('nobr').text
+            imdb_id = re.search(
+                r'https:\/\/imdb.com\/title\/([a-z0-9]+)', row.find('.//a[@class="infolink"]').get('href')
+            )
+
+            movie_data = None  # type: Union[None,dict]
+            if imdb_id:
+                tmdb_data = tmdb.find.Find(imdb_id.group(1)).info(external_source='imdb_id',
+                                                                  language=xbmc.getLanguage(xbmc.ISO_639_1))
+                if tmdb_data['movie_results']:
+                    movie_data = tmdb_data['movie_results'][0]
+
+            if not movie_data:
+                movie_data = get_torrent_info(torrent_id)
+            else:
+                movie_data['poster_path'] = '{}/{}'.format(__TMDB_IMAGE_BASE__, movie_data['poster_path'])
+
+            quality = [re.search('[1-9][0-9]*[pi]', torrent_title)]
+
+            site_rank = row.find('.//*[@class="siterank"]/span')
+            if site_rank:
+                quality.append(re.search('[1-9][0-9]*[pi]', site_rank.text))
+
+            quality = [m.group() for m in quality if m]
+            quality = quality[0] if quality else 'SD'
+
+            language = match(re.search(r'hun$', row.find('.//*[@class="box_alap_img"]/a').get('href')), 'eng')
+
+            movie_data['quality'] = quality
+            movie_data['language'] = language
+            movie_data['torrent_id'] = torrent_id
+            found.append(movie_data)
+        except:
+            pass
+
+    if LAST_NEW_TORRENT is not None:
+        return found + search_news(pages)
+
+    return found
+
+
+def get_torrent_info(torrent_id):
+    url = '{endpoint}?action=details&id={torrent_id}'.format(endpoint=endpoint('torrents'), torrent_id=torrent_id)
+    root = htmlement.fromstring(get_content(url))
+
+    torrent_title = root.find('.//*[@class="torrent_reszletek_cim"]')
+    torrent_poster = root.find('.//*[@class="inforbar_img"]/img')
+    torrent_overview = root.find('.//*[@class="torrent_leiras proba42"]')
+    torrent_info = root.findall('.//*[@class="inforbar_txt"]/table/tr')
+
+    data = {
+        "poster_path": torrent_poster.get('src') if torrent_poster is not None else '',
+        "title": torrent_title.text if torrent_title is not None else 'Ismeretlen',
+        "overview": '\n'.join(torrent_overview.itertext()) if torrent_overview is not None else '',
+        "release_date": None,
+        "vote_average": 0,
+        "genre_ids": [],
+        "imdb_id": None
+    }
+
+    if torrent_info is not None:
+        torrent_info_dict = {
+            u'Megjelenés éve:': 'release_date',
+            u'IMDb értékelés:': 'vote_average',
+            u'IMDb link:': 'imdb_id'
+        }
+        for tr in torrent_info:
+            td = tr.findall('./td')
+            a = td[1].find('./a')
+            if td[0].text in torrent_info_dict.keys():
+                data[torrent_info_dict[td[0].text]] = td[1].text if a is None else a.get('href')
+
+    if data['imdb_id']:
+        data['imdb_id'] = re.search(r'tt[0-9]+$', data['imdb_id']).group(0)
+
+    return data
+
+
 def get_content(url):
+    if session is None:
+        (user, pwd) = (setting('ncore_user'), setting('ncore_pass'))
+        login(user, pwd)
     try:
         content = session.get(url).content
     except AttributeError:
