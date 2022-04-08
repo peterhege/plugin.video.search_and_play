@@ -10,7 +10,7 @@ import xbmcaddon
 import xbmcgui
 import requests
 from resources.lib import settings_repository, context_factory, download_manager
-from resources.lib.control import setting, notice, __TMDB_IMAGE_BASE__
+from resources.lib.control import setting, notice, __TMDB_IMAGE_BASE__, email
 import htmlement
 
 try:
@@ -33,6 +33,7 @@ cookie_file_name = os.path.join(
 CACHE_DIR = os.path.join(xbmcaddon.Addon().getAddonInfo('path'), 'cache')
 TORRENT_CACHE_DIR = os.path.join(CACHE_DIR, 'torrents')
 NEWS_CACHE_FILE = os.path.join(CACHE_DIR, 'news.txt')
+FOUND_NEW_TORRENT = None
 LANGUAGES = {
     'hun': 'Magyar',
     'eng': 'Angol'
@@ -346,6 +347,8 @@ def download(torrent_id, show_dialog=True):
 
 
 def news():
+    global FOUND_NEW_TORRENT
+    FOUND_NEW_TORRENT = None
     s = xbmcaddon.Addon().getSetting
     if not (s('email_host') and s('email_port') and s('email_user') and s('email_pwd') and s('web_interface')):
         return
@@ -362,9 +365,10 @@ def news():
     if not new_torrents:
         return
 
-    # TODO
-    # with open(NEWS_CACHE_FILE, 'w') as f:
-    #     f.write(new_torrents[0]['torrent_id'])
+    email('Napi új', 'news.html', movies=new_torrents.values(), json=json)
+
+    with open(NEWS_CACHE_FILE, 'w') as f:
+        f.write(FOUND_NEW_TORRENT)
 
 
 def search_news(pages=None):
@@ -373,7 +377,7 @@ def search_news(pages=None):
     if pages is None:
         pages = list(range(1, 4))
     if len(pages) == 0:
-        return []
+        return {}
 
     page = pages.pop(0)
 
@@ -383,12 +387,17 @@ def search_news(pages=None):
 
     rows = root.findall('.//*[@class="box_torrent"]')
 
-    found = []
+    found = {}
 
     for row in rows:
         try:
             torrent_a = row.find('.//*[@class="torrent_txt"]/a')
             torrent_id = re.search('id=([0-9]+)', torrent_a.get('href')).group(1)
+            if not torrent_id:
+                continue
+            if FOUND_NEW_TORRENT is None:
+                global FOUND_NEW_TORRENT
+                FOUND_NEW_TORRENT = torrent_id
             if torrent_id == LAST_NEW_TORRENT:
                 return found
             torrent_title = torrent_a.text if torrent_a.text else torrent_a.find('nobr').text
@@ -419,15 +428,17 @@ def search_news(pages=None):
 
             language = match(re.search(r'hun$', row.find('.//*[@class="box_alap_img"]/a').get('href')), 'eng')
 
-            movie_data['quality'] = quality
-            movie_data['language'] = language
-            movie_data['torrent_id'] = torrent_id
-            found.append(movie_data)
+            movie_data['torrents'] = {torrent_id: {'q': quality, 'l': language, 't': torrent_title}}
+            found_id = movie_data['id'] if 'id' in movie_data else movie_data['imdb_id']
+            if found_id in found:
+                found[found_id]['torrents'].update(movie_data['torrents'])
+            else:
+                found[found_id] = movie_data
         except:
             pass
 
     if LAST_NEW_TORRENT is not None:
-        return found + search_news(pages)
+        return found.update(search_news(pages))
 
     return found
 

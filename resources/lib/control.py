@@ -1,5 +1,6 @@
 # coding=utf-8
 import importlib
+import json
 import os
 import re
 import smtplib
@@ -11,12 +12,14 @@ from email.mime.text import MIMEText
 import xbmc
 import xbmcaddon
 import xbmcgui
+from bottle import template
 
 from resources.lib import settings_repository
 
 addon_info = xbmcaddon.Addon().getAddonInfo
 dialog = xbmcgui.Dialog()
 __TMDB_IMAGE_BASE__ = 'https://image.tmdb.org/t/p/original'
+TEMPLATES = os.path.join(xbmcaddon.Addon().getAddonInfo('path'), 'resources', 'templates')
 
 
 def setting(setting_id, value=None):
@@ -136,3 +139,44 @@ def notification(tmdb_data, notification_type):
 def notice(msg, head=None):
     head = ': {}'.format(head) if head is not None else ''
     xbmcgui.Dialog().notification('Search and Play{}'.format(head), msg, get_media('icon.png'))
+
+
+def email(subject, tpl, **args):
+    tpl = os.path.join(TEMPLATES, 'email', tpl)
+    s = xbmcaddon.Addon().getSetting
+
+    recipients = []
+    for i in range(5):
+        try:
+            if s('email_address_{}'.format(i)):
+                recipients.append(s('email_address_{}'.format(i)))
+        except Exception as e:
+            pass
+
+    if not recipients:
+        return
+
+    try:
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = '{} - {}'.format(subject, time.time())
+        msg['From'] = 'Search and Play <{}>'.format(s('email_user'))
+        msg['To'] = ', '.join(recipients)
+
+        html = template(tpl, **args)
+
+        part1 = MIMEText(subject, 'plain')
+        part2 = MIMEText(html.encode('utf-8'), 'html')
+
+        msg.attach(part1)
+        msg.attach(part2)
+
+        mail = smtplib.SMTP(s('email_host'), s('email_port'))
+
+        mail.ehlo()
+        mail.starttls()
+
+        mail.login(s('email_user'), s('email_pwd'))
+        mail.sendmail(s('email_user'), recipients, msg.as_string())
+        mail.quit()
+    except Exception as e:
+        notice('control.email: {}'.format(str(e)), 'Error')
