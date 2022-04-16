@@ -239,14 +239,6 @@ def free_up_storage_space():
     xbmcgui.Dialog().notification('Search and Play', '{} törölve'.format(library_data['title'].encode('utf-8')),
                                   get_media('icon.png'))
 
-    global session
-    try:
-        if session:
-            session.close()
-    except:
-        pass
-    session = None
-
 
 def remove_torrents(hashes):
     init()
@@ -276,9 +268,11 @@ def login(user, pwd):
         session.headers.update({'User-Agent': user_agent})
 
     if os.path.isfile(cookie_file_name):
-        cookie_file = open(cookie_file_name)
-        cookies = requests.utils.cookiejar_from_dict(pickle.load(cookie_file))
-        session.cookies = cookies
+        try:
+            cookies = requests.utils.cookiejar_from_dict(pickle.load(open(cookie_file_name)))
+            session.cookies = cookies
+        except Exception as e:
+            pass
 
     response = session.get(endpoint('auth/login'))
 

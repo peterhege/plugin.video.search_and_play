@@ -132,9 +132,11 @@ def login(user, pwd):
         session.headers.update({'User-Agent': user_agent})
 
     if os.path.isfile(cookie_file_name):
-        cookie_file = open(cookie_file_name)
-        cookies = requests.utils.cookiejar_from_dict(pickle.load(cookie_file))
-        session.cookies = cookies
+        try:
+            cookies = requests.utils.cookiejar_from_dict(pickle.load(open(cookie_file_name)))
+            session.cookies = cookies
+        except Exception as e:
+            pass
 
     valid_str = user + ' profilja'
 
@@ -358,7 +360,7 @@ def news():
         tmdb.API_KEY = setting('tmdb_key')
         login(setting('ncore_user'), setting('ncore_pass'))
     except Exception as e:
-        notice('ncore_driver.news: {}'.format(str(e)), 'ERROR')
+        notice('ncore_driver.news.login: {}'.format(str(e)), 'ERROR')
         return
 
     new_torrents = search_news()
@@ -371,14 +373,14 @@ def news():
         f.write(FOUND_NEW_TORRENT)
 
 
-def search_news(pages=None):
+def search_news(pages=None, found=None):
     import tmdbsimple as tmdb
     global FOUND_NEW_TORRENT
 
     if pages is None:
         pages = list(range(1, 4))
     if len(pages) == 0:
-        return {}
+        return found
 
     page = pages.pop(0)
 
@@ -388,7 +390,8 @@ def search_news(pages=None):
 
     rows = root.findall('.//*[@class="box_torrent"]')
 
-    found = {}
+    if found is None:
+        found = {}
 
     for row in rows:
         try:
@@ -438,7 +441,7 @@ def search_news(pages=None):
             pass
 
     if LAST_NEW_TORRENT is not None:
-        return found.update(search_news(pages))
+        return search_news(pages, found)
 
     return found
 

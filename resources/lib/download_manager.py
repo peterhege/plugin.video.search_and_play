@@ -59,12 +59,3 @@ def watch():
         xbmcgui.Dialog().notification('Search and Play ERROR', 'download_manager.watch: {}'.format(str(e)),
                                       get_media('icon.png'))
         xbmc.log('download_manager.watch Error: {}'.format(str(e)))
-
-    try:
-        if qbittorrent_driver.session:
-            qbittorrent_driver.session.close()
-    except Exception as e:
-        xbmcgui.Dialog().notification('Search and Play ERROR', 'download_manager.watch: {}'.format(str(e)),
-                                      get_media('icon.png'))
-        xbmc.log('download_manager.watch Error: {}'.format(str(e)))
-    qbittorrent_driver.session = None

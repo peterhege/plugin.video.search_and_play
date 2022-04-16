@@ -66,13 +66,6 @@ def research_movies():
         except Exception as e:
             return
 
-    try:
-        if ncore_driver.session:
-            ncore_driver.session.close()
-    except:
-        pass
-    ncore_driver.session = None
-
 
 def research_movie(tmdb_id, query):
     tmdb_data = tmdb.Movies(tmdb_id).info(language=xbmc.getLanguage(xbmc.ISO_639_1))
