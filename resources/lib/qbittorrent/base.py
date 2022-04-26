@@ -108,6 +108,7 @@ class Qbittorrent(object):
 
         response.raise_for_status()
         response.encoding = 'utf-8'
+
         try:
             return response.json()
         except ValueError:

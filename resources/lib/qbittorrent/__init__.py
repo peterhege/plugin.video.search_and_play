@@ -4,6 +4,7 @@ import os
 
 from .base import AuthenticationError
 from .application import Application
+from .log import Log
 
 try:
     import xbmcaddon
@@ -25,7 +26,7 @@ except:
         }[setting_id]
 
 __all__ = [
-    'AuthenticationError', 'Application'
+    'AuthenticationError', 'Application', 'Log'
 ]
 
 if not os.path.exists(USER_PATH):
