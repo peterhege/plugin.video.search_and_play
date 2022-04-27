@@ -27,8 +27,18 @@ class Sync(Qbittorrent):
         params = {k: v for k, v in locals().iteritems() if v is not None and k != 'self'}
         return MainData(**self._GET(path, params))
 
-    def torrent_peers(self):
-        pass
+    def torrent_peers(self, hash, rid=None):  # type: (str,int)-> TorrentPeers
+        """
+        Get torrent peers data
+
+        Parameters:
+            hash (str): Torrent hash
+            rid (int): Response ID. If not provided, rid=0 will be assumed. If the given rid is different from the one
+                        of last server reply, full_update will be true (see the server reply details for more info)
+        """
+        path = self._get_path('torrentPeers')
+        params = {k: v for k, v in locals().iteritems() if v is not None and k != 'self'}
+        return TorrentPeers(**self._GET(path, params))
 
 
 class MainData(object):
@@ -214,6 +224,51 @@ class Categories(object):
 class Category(object):
     name = None  # type: str
     save_path = None  # type: str
+
+    def __init__(self, **kwargs):
+        for k, v in kwargs.items():
+            setattr(self, to_snake_case(k), v)
+
+
+class TorrentPeers(object):
+    peers = None  # type: List[TorrentPeer]
+    rid = None  # type: int
+    full_update = None  # type: bool
+    show_flags = None  # type: bool
+
+    def __init__(self, **kwargs):
+        for k, v in kwargs.items():
+            setter = 'set_{}'.format(k)
+            if hasattr(self, setter) and callable(getattr(self, setter)):
+                setter = getattr(self, setter)
+                setter(v)
+            else:
+                setattr(self, k, v)
+
+    def set_peers(self, peers_dict):  # type: (dict) -> TorrentPeers
+        self.peers = [TorrentPeer(**peer) for peer in peers_dict.values()]
+        return self
+
+    def find_by_ip(self, ip):  # type: (str) -> List[TorrentPeer]
+        return [peer for peer in self.peers if peer.ip == ip]
+
+
+class TorrentPeer:
+    dl_speed = None,  # type: int
+    files = None,  # type: str
+    uploaded = None,  # type: int
+    country = None,  # type: str
+    up_speed = None,  # type: int
+    port = None,  # type: int
+    downloaded = None,  # type: int
+    connection = None,  # type: str
+    client = None,  # type: str
+    flags = None,  # type: str
+    country_code = None,  # type: str
+    ip = None,  # type: str
+    relevance = None,  # type: int
+    progress = None,  # type: int
+    flags_desc = None,  # type: str
 
     def __init__(self, **kwargs):
         for k, v in kwargs.items():
