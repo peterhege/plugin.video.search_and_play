@@ -97,18 +97,9 @@ class BuildInfo(object):
     openssl = None  # type: str
     bitness = None  # type: int
 
-    def __init__(
-            self,
-            qt=None,  # type: str
-            libtorrent=None,  # type: str
-            boost=None,  # type: str
-            openssl=None,  # type: str
-            bitness=None,  # type: int
-            **kwargs
-    ):
-        for k, v in locals().iteritems():
-            if k != 'self':
-                setattr(self, k, v)
+    def __init__(self, **kwargs):
+        for k, v in kwargs.items():
+            setattr(self, k, v)
 
 
 class Preferences(object):
@@ -409,6 +400,17 @@ class Preferences(object):
     upload_slots_behavior = None  # type: int
     upnp_lease_duration = None  # type: int
     utp_tcp_mixed_mode = None  # type: int
+    max_concurrent_http_announces = None  # type: int
+    block_peers_on_privileged_ports = None  # type: bool
+    peer_tos = None  # type: int
+    ssrf_mitigation = None  # type: bool
+    torrent_content_layout = None  # type: str
+    peer_turnover_interval = None  # type: int
+    validate_https_tracker_certificate = None  # type: bool
+    peer_turnover_cutoff = None  # type: int
+    peer_turnover = None  # type: int
+    hashing_threads = None  # type: int
+    idn_support_enabled = None  # type: bool
 
     def __init__(
             self,
@@ -558,8 +560,22 @@ class Preferences(object):
             upload_slots_behavior=None,  # type: int
             upnp_lease_duration=None,  # type: int
             utp_tcp_mixed_mode=None,  # type: int
+            max_concurrent_http_announces=None,  # type: int
+            block_peers_on_privileged_ports=None,  # type: bool
+            peer_tos=None,  # type: int
+            ssrf_mitigation=None,  # type: bool
+            torrent_content_layout=None,  # type: str
+            peer_turnover_interval=None,  # type: int
+            validate_https_tracker_certificate=None,  # type: bool
+            peer_turnover_cutoff=None,  # type: int
+            peer_turnover=None,  # type: int
+            hashing_threads=None,  # type: int
+            idn_support_enabled=None,  # type: bool
             **kwargs
     ):
         for k, v in locals().iteritems():
+            if k == 'kwargs':
+                for k2, v2 in v.items():
+                    setattr(self, k2, v2)
             if k != 'self':
                 setattr(self, k, v)
