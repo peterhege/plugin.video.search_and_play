@@ -5,6 +5,10 @@ class Transfer(Qbittorrent):
     BASE_PATH = 'transfer'
     URLS = {
         'info': '/info',
+        'speedLimitsMode': '/speedLimitsMode',
+        'toggleSpeedLimitsMode': '/toggleSpeedLimitsMode',
+        'downloadLimit': '/downloadLimit',
+        'setDownloadLimit': '/setDownloadLimit'
     }
 
     def info(self):
@@ -12,6 +16,34 @@ class Transfer(Qbittorrent):
         path = self._get_path('info')
         params = {k: v for k, v in locals().iteritems() if v is not None and k != 'self'}
         return Info(**self._GET(path, params))
+
+    def speed_limits_mode(self, toggle=False):  # type: (bool) -> bool
+        if toggle:
+            return self.toggle_speed_limits_mode()
+        return self.get_speed_limits_mode()
+
+    def get_speed_limits_mode(self):  # type: () -> bool
+        path = self._get_path('speedLimitsMode')
+        return bool(int(self._GET(path)))
+
+    def toggle_speed_limits_mode(self):  # type: () -> bool
+        path = self._get_path('toggleSpeedLimitsMode')
+        self._GET(path)
+        return self.get_speed_limits_mode()
+
+    def download_limit(self, limit=None):  # type: (int) -> int
+        if limit is None:
+            return self.get_download_limit()
+        return self.set_download_limit(limit)
+
+    def get_download_limit(self):  # type: () -> int
+        path = self._get_path('downloadLimit')
+        return int(self._GET(path))
+
+    def set_download_limit(self, limit):  # type: (int) -> int
+        path = self._get_path('setDownloadLimit')
+        self._GET(path, {"limit": limit})
+        return self.get_download_limit()
 
 
 class Info(object):
