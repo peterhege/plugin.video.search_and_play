@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
-import json
 import os
 import pickle
-import re
 
 import requests
 
@@ -12,13 +10,6 @@ except:
     pass
 
 REQUESTS_SESSION = None  # type: Union[None,requests.Session]
-
-
-def to_snake_case(camel_case):  # type: (str) -> str
-    def variable_replace(match):  # type: (Match) -> str
-        return '_{}'.format(match.group(0).lower())
-
-    return re.sub(r'([A-Z])', variable_replace, camel_case)
 
 
 class AuthenticationError(Exception):
@@ -32,6 +23,7 @@ class Qbittorrent(object):
     }
     BASE_PATH = ''
     URLS = {}
+    response = None  # type: requests.Response
 
     def __init__(self):
         from . import WEB_UI_HOST, API_VERSION, REQUESTS_TIMEOUT, USER_PATH
@@ -94,29 +86,12 @@ class Qbittorrent(object):
         url = self._get_complete_url(path)
 
         headers = self.headers if headers is None else headers
-
-        # Create a new request session if no global session is defined
-        if self.session is None:
-            response = requests.request(
-                method,
-                url,
-                params=params,
-                data=json.dumps(payload) if payload else payload,
-                headers=headers, timeout=self.timeout
-            )
-
-        # Use the global requests session the user provided
-        else:
-            response = self.session.request(
-                method,
-                url,
-                params=params,
-                data=json.dumps(payload) if payload else payload,
-                headers=headers, timeout=self.timeout
-            )
+        base = requests if self.session is None else self.session
+        response = base.request(method, url, params=params, data=payload, headers=headers, timeout=self.timeout)
 
         response.raise_for_status()
         response.encoding = 'utf-8'
+        self.response = response
 
         try:
             return response.json()

@@ -1,4 +1,10 @@
-from .base import Qbittorrent, to_snake_case
+from .base import Qbittorrent
+from .model import TransferInfo
+
+try:
+    from typing import Union, List
+except:
+    pass
 
 
 class Transfer(Qbittorrent):
@@ -8,14 +14,17 @@ class Transfer(Qbittorrent):
         'speedLimitsMode': '/speedLimitsMode',
         'toggleSpeedLimitsMode': '/toggleSpeedLimitsMode',
         'downloadLimit': '/downloadLimit',
-        'setDownloadLimit': '/setDownloadLimit'
+        'setDownloadLimit': '/setDownloadLimit',
+        'uploadLimit': '/uploadLimit',
+        'setUploadLimit': '/setUploadLimit',
+        'banPeers': '/banPeers'
     }
 
     def info(self):
         """https://github.com/qbittorrent/qBittorrent/wiki/WebUI-API-(qBittorrent-4.1)#get-global-transfer-info"""
         path = self._get_path('info')
         params = {k: v for k, v in locals().iteritems() if v is not None and k != 'self'}
-        return Info(**self._GET(path, params))
+        return TransferInfo(**self._GET(path, params))
 
     def speed_limits_mode(self, toggle=False):  # type: (bool) -> bool
         if toggle:
@@ -45,17 +54,29 @@ class Transfer(Qbittorrent):
         self._GET(path, {"limit": limit})
         return self.get_download_limit()
 
+    def upload_limit(self, limit=None):  # type: (int) -> int
+        if limit is None:
+            return self.get_upload_limit()
+        return self.set_upload_limit(limit)
 
-class Info(object):
-    dl_info_speed = None  # type: int
-    dl_info_data = None  # type: int
-    up_info_speed = None  # type: int
-    up_info_data = None  # type: int
-    dl_rate_limit = None  # type: int
-    up_rate_limit = None  # type: int
-    dht_nodes = None  # type: int
-    connection_status = None  # type: str
+    def get_upload_limit(self):  # type: () -> int
+        path = self._get_path('uploadLimit')
+        return int(self._GET(path))
 
-    def __init__(self, **kwargs):
-        for k, v in kwargs.items():
-            setattr(self, to_snake_case(k), v)
+    def set_upload_limit(self, limit):  # type: (int) -> int
+        path = self._get_path('setUploadLimit')
+        self._GET(path, {"limit": limit})
+        return self.get_upload_limit()
+
+    def ban_peers(self, peers):  # type: (Union[str,List[str]]) -> bool
+        """
+        :param peers: The peer to ban, or multiple peers separated by a pipe |. Each peer is a colon-separated host:port
+        """
+        peers = '|'.join(peers) if type(peers) is list else peers
+
+        try:
+            path = self._get_path('banPeers')
+            self._GET(path, {"peers": peers})
+            return True
+        except:
+            return False

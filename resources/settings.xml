@@ -13,6 +13,7 @@
         <setting label="Jelszó" type="text" id="qbittorrent_pass"/>
         <setting label="Filmek mappa" type="text" id="qbittorrent_movies_path" default="/downloads/Filmek/"/>
         <setting label="Sorozatok mappa" type="text" default="/downloads/Sorozatok/" id="qbittorrent_tv_path"/>
+        <setting label="API verzió" type="text" id="qbittorrent_api_version" default="2"/>
         <setting label="Egyéb" type="lsep"/>
         <setting label="Lejátszás megkezdése (%)" type="number" default="25" id="play_from"/>
     </category>
