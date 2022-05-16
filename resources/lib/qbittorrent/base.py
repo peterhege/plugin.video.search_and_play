@@ -17,10 +17,7 @@ class AuthenticationError(Exception):
 
 
 class Qbittorrent(object):
-    headers = {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-    }
+    headers = {}
     BASE_PATH = ''
     URLS = {}
     response = None  # type: requests.Response
@@ -86,8 +83,6 @@ class Qbittorrent(object):
         kwargs = {'headers': self.headers if headers is None else headers, 'timeout': self.timeout}
         if params is not None:
             kwargs['params'] = params
-        if payload is not None:
-            kwargs['data'] = payload
         if payload is not None:
             kwargs['data'] = payload
         if files is not None:

@@ -39,10 +39,10 @@ class Torrents(Qbittorrent):
         params = {k: v for k, v in params.__dict__.items() if v is not None}
         return TorrentCollection(self._GET(path, params))
 
-    def get(self, hash):  # type: (str) -> Union[TorrentType,None]
-        return self.properties(hash)
+    def get(self, hash):  # type: (str) -> Union[TorrentType,Torrent]
+        return Torrent(hash=hash)
 
-    def properties(self, hash):  # type: (str) -> Union[TorrentType,None]
+    def properties(self, hash):  # type: (str) -> Union[TorrentType,None,Torrent]
         path = self._get_path('properties')
         try:
             torrent = Torrent(**self._GET(path, {'hash': hash}))
@@ -125,31 +125,66 @@ class Torrents(Qbittorrent):
             self,
             torrent_file=None,  # type: str
             urls=None,  # type: Union[list,str]
-            savepath=None,  # type: str
+            save_path=None,  # type: str
             cookie=None,  # type: str
             category=None,  # type: str
             tags=None,  # type: str
-            skip_checking=None,  # type: str
+            skip_checking=None,  # type: bool
             paused=None,  # type: bool
-            root_folder=None,  # type: str
+            root_folder=None,  # type: bool
             rename=None,  # type: str
-            upLimit=None,  # type: int
-            dlLimit=None,  # type: int
-            ratioLimit=None,  # type: float
-            seedingTimeLimit=None,  # type: int
-            autoTMM=None,  # type: bool
-            sequentialDownload=None,  # type: bool
-            firstLastPiecePrio=None,  # type: bool
+            upload_limit=None,  # type: int
+            download_limit=None,  # type: int
+            ratio_limit=None,  # type: float
+            seeding_time_limit=None,  # type: int
+            automatic_torrent_management=None,  # type: bool
+            sequential_download=None,  # type: bool
+            first_last_piece_prior=None,  # type: bool
     ):
+        """
+        Arguments:
+            urls (str): URLs separated with newlines
+            torrent_file (str): Raw data of torrent file. torrents can be presented multiple times.
+            save_path (str): [optional] Download folder
+            cookie (str): [optional] Cookie sent to download the .torrent file
+            category (str): [optional] Category for the torrent
+            tags (str): [optional] Tags for the torrent, split by ','
+            skip_checking (bool): [optional] Skip hash checking. Possible values are true, false (default)
+            paused (bool): [optional] Add torrents in the paused state. Possible values are true, false (default)
+            root_folder (bool): [optional] Create the root folder. Possible values are true, false, unset (default)
+            rename (str): [optional] Rename torrent
+            upload_limit (int): [optional] Set torrent upload speed limit. Unit in bytes/second
+            download_limit (int): [optional] Set torrent download speed limit. Unit in bytes/second
+            ratio_limit (float): [optional] since 2.8.1 Set torrent share ratio limit
+            seeding_time_limit (int): [optional] since 2.8.1 Set torrent seeding time limit. Unit in seconds
+            automatic_torrent_management (bool): [optional] Whether Automatic Torrent Management should be used
+            sequential_download (bool): [optional] Enable sequential download. Possible values are true, false (default)
+            first_last_piece_prior (bool): [optional] Prioritize download first last piece. Possible values are true, false (default)
+        """
         if torrent_file is None and urls is None:
             raise Exception("Required parameters: 'torrent_file' or 'urls'")
 
-        ignored = ['self', 'torrent_file', 'urls']
-        payload = {k: v for k, v in locals().iteritems() if k not in ignored and v is not None}
-        if 'urls' in payload:
-            payload['urls'] = '\n'.join(payload['urls']) if type(payload['urls']) is list else payload['urls']
-        if 'tags' in payload:
-            payload['tags'] = ','.join(payload['tags']) if type(payload['tags']) is list else payload['tags']
+        payload = {}
+        key_dict = {
+            'save_path': 'savepath',
+            'upload_limit': 'upLimit',
+            'download_limit': 'dlLimit',
+            'ratio_limit': 'ratioLimit',
+            'seeding_time_limit': 'seedingTimeLimit',
+            'automatic_torrent_management': 'autoTMM',
+            'sequential_download': 'sequentialDownload',
+            'first_last_piece_prior': 'firstLastPiecePrio'
+        }
+        for k, v in locals().iteritems():
+            if k in ['self', 'torrent_file']:
+                continue
+            if k in key_dict:
+                k = key_dict[k]
+            if k == 'url':
+                v = '\n'.join(v) if type(v) is list else v
+            elif k == 'tags':
+                v = ','.join(v) if type(v) is list else v
+            payload[k] = v
 
         params = {}
         if len(payload.values()):

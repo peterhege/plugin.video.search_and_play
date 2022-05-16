@@ -4,6 +4,8 @@ import json
 from .base import Qbittorrent
 from .model import BuildInfo, Preferences
 
+CACHE = {}
+
 
 class Application(Qbittorrent):
     BASE_PATH = 'app'
@@ -24,8 +26,10 @@ class Application(Qbittorrent):
         Returns:
             The response is a string with the application version, e.g. v4.1.3
         """
-        path = self._get_path('version')
-        return self._GET(path, None, {})
+        if 'version' not in CACHE:
+            path = self._get_path('version')
+            CACHE['version'] = self._GET(path, None, {})
+        return CACHE['version']
 
     def webapi_version(self):  # type: () -> str
         """
@@ -34,15 +38,19 @@ class Application(Qbittorrent):
         Returns:
             The response is a string with the WebAPI version, e.g. 2.0
         """
-        path = self._get_path('webapiVersion')
-        return self._GET(path, None, {})
+        if 'webapi_version' not in CACHE:
+            path = self._get_path('webapiVersion')
+            CACHE['webapi_version'] = self._GET(path, None, {})
+        return CACHE['webapi_version']
 
     def build_info(self):  # type: () -> BuildInfo
         """
         Get build info
         """
-        path = self._get_path('buildInfo')
-        return BuildInfo(**self._GET(path, None))
+        if 'build_info' not in CACHE:
+            path = self._get_path('buildInfo')
+            CACHE['build_info'] = BuildInfo(**self._GET(path, None))
+        return CACHE['build_info']
 
     def preferences(self, preferences=None):  # type: (Preferences) -> Preferences
         if not preferences:
