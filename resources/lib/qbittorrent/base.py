@@ -82,13 +82,20 @@ class Qbittorrent(object):
     def _get_complete_url(self, path):
         return '{base_uri}/{path}'.format(base_uri=self.base_uri, path=path)
 
-    def _request(self, method, path, params=None, payload=None, headers=None):
+    def _request(self, method, path, params=None, payload=None, headers=None, files=None):
+        kwargs = {'headers': self.headers if headers is None else headers, 'timeout': self.timeout}
+        if params is not None:
+            kwargs['params'] = params
+        if payload is not None:
+            kwargs['data'] = payload
+        if payload is not None:
+            kwargs['data'] = payload
+        if files is not None:
+            kwargs['files'] = files
+
         url = self._get_complete_url(path)
-
-        headers = self.headers if headers is None else headers
         base = requests if self.session is None else self.session
-        response = base.request(method, url, params=params, data=payload, headers=headers, timeout=self.timeout)
-
+        response = base.request(method, url, **kwargs)
         response.raise_for_status()
         response.encoding = 'utf-8'
         self.response = response
@@ -101,8 +108,8 @@ class Qbittorrent(object):
     def _GET(self, path, params=None, headers=None):
         return self._request('GET', path, params=params, headers=headers)
 
-    def _POST(self, path, params=None, payload=None, headers=None):
-        return self._request('POST', path, params=params, payload=payload, headers=headers)
+    def _POST(self, path, params=None, payload=None, headers=None, files=None):
+        return self._request('POST', path, params=params, payload=payload, headers=headers, files=files)
 
     def _DELETE(self, path, params=None, payload=None, headers=None):
         return self._request('DELETE', path, params=params, payload=payload, headers=headers)

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import json
+import re
 
 from .base import Collection
 from ..functions import to_snake_case
@@ -60,6 +61,30 @@ class Torrent(object):
             if v is not None:
                 setattr(self, k, v)
         return self
+
+    def pieces(self):  # type: () -> Union[TorrentPieceCollection, None]
+        if not self.piece_hashes:
+            return None
+        return TorrentPieceCollection([{
+            'index': i,
+            'hash': self.piece_hashes[i],
+            'state': self.piece_states[i]
+        } for i in range(len(self.piece_hashes))])
+
+    def pause(self):
+        return Torrent.driver().pause(self.hash)
+
+    def resume(self):
+        return Torrent.driver().resume(self.hash)
+
+    def delete(self, delete_files=False):
+        return Torrent.driver().delete(self.hash, delete_files)
+
+    def recheck(self):
+        return Torrent.driver().recheck(self.hash)
+
+    def do_reannounce(self):
+        return Torrent.driver().reannounce(self.hash)
 
 
 class TorrentType(Torrent):
@@ -137,6 +162,8 @@ class TorrentType(Torrent):
     trackers = None  # type: TrackerCollection
     web_seeds = None  # type: WebSeedCollection
     files = None  # type: TorrentFileCollection
+    piece_states = None  # type: List[int]
+    piece_hashes = None  # type: List[str]
 
 
 class CategoryCollection(object):
@@ -267,3 +294,27 @@ class TorrentFileCollection(Collection):
 
     def __init__(self, data_list):
         super(TorrentFileCollection, self).__init__(data_list, TorrentFile)
+
+    def movie_file(self):  # type: () -> Union[TorrentFile,None]
+        video = r'\.(webm|mkv|flv|vob|ogv|ogg|drc|mng|avi|mov|wmv|mp4)$'
+        files = filter(lambda f: re.search(video, f.name) and not re.search(r'sample', f.name), self.list)
+        if len(files) == 0:
+            return None
+        return sorted(files, key=lambda f: f.size, reverse=True)[0]
+
+
+class TorrentPieceCollection(Collection):
+    list = []  # type: List[TorrentPiece]
+
+    def __init__(self, data_list):
+        super(TorrentPieceCollection, self).__init__(data_list, TorrentPiece)
+
+
+class TorrentPiece(object):
+    index = None
+    state = None
+    hash = None
+
+    def __init__(self, **kwargs):
+        for k, v in kwargs.items():
+            setattr(self, k, v)

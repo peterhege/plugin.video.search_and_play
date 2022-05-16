@@ -20,7 +20,15 @@ class Torrents(Qbittorrent):
         'properties': '/properties',
         'trackers': '/trackers',
         'webseeds': '/webseeds',
-        'files': '/files'
+        'files': '/files',
+        'pieceStates': '/pieceStates',
+        'pieceHashes': '/pieceHashes',
+        'pause': '/pause',
+        'resume': '/resume',
+        'delete': '/delete',
+        'recheck': '/recheck',
+        'reannounce': '/reannounce',
+        'add': '/add'
     }
 
     def search(self, params):  # type: (InfoParams) -> TorrentCollection
@@ -68,6 +76,92 @@ class Torrents(Qbittorrent):
             params['indexes'] = indexes
         return TorrentFileCollection(self._GET(path, params))
 
+    def piece_states(self, hash):
+        path = self._get_path('pieceStates')
+        params = {'hash': hash}
+        return self._GET(path, params)
+
+    def piece_hashes(self, hash):
+        path = self._get_path('pieceHashes')
+        params = {'hash': hash}
+        return self._GET(path, params)
+
+    def pause(self, hashes):
+        if type(hashes) is list:
+            hashes = '|'.join(hashes)
+        path = self._get_path('pause')
+        params = {'hashes': hashes}
+        return self._GET(path, params)
+
+    def resume(self, hashes):
+        if type(hashes) is list:
+            hashes = '|'.join(hashes)
+        path = self._get_path('resume')
+        params = {'hashes': hashes}
+        return self._GET(path, params)
+
+    def delete(self, hashes, delete_files=False):
+        if type(hashes) is list:
+            hashes = '|'.join(hashes)
+        path = self._get_path('delete')
+        params = {'hashes': hashes, 'deleteFiles': delete_files}
+        return self._GET(path, params)
+
+    def recheck(self, hashes):
+        if type(hashes) is list:
+            hashes = '|'.join(hashes)
+        path = self._get_path('recheck')
+        params = {'hashes': hashes}
+        return self._GET(path, params)
+
+    def reannounce(self, hashes):
+        if type(hashes) is list:
+            hashes = '|'.join(hashes)
+        path = self._get_path('reannounce')
+        params = {'hashes': hashes}
+        return self._GET(path, params)
+
+    def add(
+            self,
+            torrent_file=None,  # type: str
+            urls=None,  # type: Union[list,str]
+            savepath=None,  # type: str
+            cookie=None,  # type: str
+            category=None,  # type: str
+            tags=None,  # type: str
+            skip_checking=None,  # type: str
+            paused=None,  # type: bool
+            root_folder=None,  # type: str
+            rename=None,  # type: str
+            upLimit=None,  # type: int
+            dlLimit=None,  # type: int
+            ratioLimit=None,  # type: float
+            seedingTimeLimit=None,  # type: int
+            autoTMM=None,  # type: bool
+            sequentialDownload=None,  # type: bool
+            firstLastPiecePrio=None,  # type: bool
+    ):
+        if torrent_file is None and urls is None:
+            raise Exception("Required parameters: 'torrent_file' or 'urls'")
+
+        ignored = ['self', 'torrent_file', 'urls']
+        payload = {k: v for k, v in locals().iteritems() if k not in ignored and v is not None}
+        if 'urls' in payload:
+            payload['urls'] = '\n'.join(payload['urls']) if type(payload['urls']) is list else payload['urls']
+        if 'tags' in payload:
+            payload['tags'] = ','.join(payload['tags']) if type(payload['tags']) is list else payload['tags']
+
+        params = {}
+        if len(payload.values()):
+            params['payload'] = payload
+        if torrent_file is not None:
+            buffer = open(torrent_file, 'rb')
+            params['files'] = {'torrents': buffer}
+
+        path = self._get_path('add')
+
+        return self._POST(path, **params)
+
     def _extend(self, torrent, key):  # type: (TorrentType,str) -> ...
         _torrent = None
         if key in [
@@ -88,6 +182,12 @@ class Torrents(Qbittorrent):
             torrents = self.search(InfoParams(hashes=torrent.hash))
             if not torrents.is_empty():
                 _torrent = torrents.first()
+        if key == 'piece_states':
+            states = self.piece_states(torrent.hash)
+            _torrent = Torrent(piece_states=states)
+        if key == 'piece_hashes':
+            hashes = self.piece_hashes(torrent.hash)
+            _torrent = Torrent(piece_hashes=hashes)
         if key == 'trackers':
             trackers = self.trackers(torrent.hash)
             _torrent = Torrent(trackers=trackers)
