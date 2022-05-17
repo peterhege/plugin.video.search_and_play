@@ -45,3 +45,4 @@ REQUESTS_TIMEOUT = os.environ.get('QBITTORRENT_REQUESTS_TIMEOUT', None)
 API_VERSION = os.environ.get('QBITTORRENT_API_VERSION', get_setting('qbittorrent_api_version'))
 
 Torrent.driver = Torrents
+Torrent.sync = Sync

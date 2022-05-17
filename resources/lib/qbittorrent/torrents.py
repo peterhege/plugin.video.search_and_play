@@ -5,7 +5,7 @@ import requests
 
 from .base import Qbittorrent
 from .model import TorrentCollection, Torrent, TorrentType, TrackerCollection, Tracker, WebSeedCollection, \
-    TorrentFileCollection
+    TorrentFileCollection, TorrentPeer
 
 try:
     from typing import Union, List
@@ -31,7 +31,12 @@ class Torrents(Qbittorrent):
         'add': '/add',
         'addTrackers': '/addTrackers',
         'editTracker': '/editTracker',
-        'removeTrackers': '/removeTrackers'
+        'removeTrackers': '/removeTrackers',
+        'addPeers': '/addPeers',
+        'increasePrio': '/increasePrio',
+        'decreasePrio': '/decreasePrio',
+        'topPrio': '/topPrio',
+        'bottomPrio': '/bottomPrio'
     }
 
     def search(self, params):  # type: (InfoParams) -> TorrentCollection
@@ -211,7 +216,60 @@ class Torrents(Qbittorrent):
     def edit_tracker(self, hash, original_url, new_url):  # type: (str,str,str) -> None
         path = self._get_path('editTracker')
         payload = {'hash': hash, 'origUrl': original_url, 'newUrl': new_url}
-        print payload
+        return self._POST(path, payload=payload)
+
+    def remove_trackers(self, hash, urls):  # type: (str,Union[str,List[str]]) -> None
+        path = self._get_path('removeTrackers')
+        if type(urls) is list:
+            urls = '\n'.join(urls)
+        payload = {'hash': hash, 'urls': urls}
+        return self._POST(path, payload=payload)
+
+    def add_peers(
+            self,
+            hashes,  # type: Union[str,List[str]]
+            peers  # type: Union[List[TorrentPeer],str,List[str],TorrentPeer]
+    ):
+        # type: (...) -> None
+        """
+        Arguments:
+            hashes (str): The hash of the torrent, or multiple hashes separated by a pipe |
+            peers (str): The peer to add, or multiple peers separated by a pipe |. Each peer is a colon-separated host:port
+        """
+        if type(hashes) is list:
+            hashes = '|'.join(hashes)
+        if type(peers) is list:
+            peers = '|'.join(['{}:{}'.format(p.ip, p.port) if type(p) is TorrentPeer else p for p in peers])
+        path = self._get_path('addPeers')
+        payload = {'hashes': hashes, 'peers': peers}
+        return self._POST(path, payload=payload)
+
+    def increase_priority(self, hashes):  # type: (Union[str,List[str]]) -> None
+        if type(hashes) is list:
+            hashes = '|'.join(hashes)
+        path = self._get_path('increasePrio')
+        payload = {'hashes': hashes}
+        return self._POST(path, payload=payload)
+
+    def decrease_priority(self, hashes):  # type: (Union[str,List[str]]) -> None
+        if type(hashes) is list:
+            hashes = '|'.join(hashes)
+        path = self._get_path('decreasePrio')
+        payload = {'hashes': hashes}
+        return self._POST(path, payload=payload)
+
+    def top_priority(self, hashes):  # type: (Union[str,List[str]]) -> None
+        if type(hashes) is list:
+            hashes = '|'.join(hashes)
+        path = self._get_path('topPrio')
+        payload = {'hashes': hashes}
+        return self._POST(path, payload=payload)
+
+    def bottom_priority(self, hashes):  # type: (Union[str,List[str]]) -> None
+        if type(hashes) is list:
+            hashes = '|'.join(hashes)
+        path = self._get_path('bottomPrio')
+        payload = {'hashes': hashes}
         return self._POST(path, payload=payload)
 
     def _extend(self, torrent, key):  # type: (TorrentType,str) -> ...

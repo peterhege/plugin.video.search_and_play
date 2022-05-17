@@ -28,7 +28,7 @@ class Sync(Qbittorrent):
         params = {k: v for k, v in locals().iteritems() if v is not None and k != 'self'}
         return SyncData(**self._GET(path, params))
 
-    def torrent_peers(self, hash, rid=None):  # type: (str,int)-> TorrentPeers
+    def torrent_peers(self, hash, rid=None):  # type: (str,int)-> TorrentPeerCollection
         """
         Get torrent peers data
 

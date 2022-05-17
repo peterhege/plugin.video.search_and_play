@@ -99,6 +99,34 @@ class Torrent(object):
         Torrent.driver().edit_tracker(self.hash, original_url, new_url)
         return self
 
+    def remove_trackers(self, urls):  # type: (Union[str,List[str]]) -> Torrent
+        Torrent.driver().remove_trackers(self.hash, urls)
+        return self
+
+    def peer_list(self):  # type: () -> TorrentPeerCollection
+        collection = Torrent.sync().torrent_peers(self.hash)  # type: TorrentPeerCollection
+        return collection
+
+    def add_peers(self, peers):  # type: (Union[List[TorrentPeer],str,List[str],TorrentPeer]) -> Torrent
+        Torrent.driver().add_peers(self.hash, peers)
+        return self
+
+    def increase_priority(self):  # type: () -> Torrent
+        Torrent.driver().increase_priority(self.hash)
+        return self
+
+    def decrease_priority(self):  # type: () -> Torrent
+        Torrent.driver().decrease_priority(self.hash)
+        return self
+
+    def top_priority(self):  # type: () -> Torrent
+        Torrent.driver().top_priority(self.hash)
+        return self
+
+    def bottom_priority(self):  # type: () -> Torrent
+        Torrent.driver().bottom_priority(self.hash)
+        return self
+
 
 class TorrentType(Torrent):
     hash = None  # type: str
@@ -243,6 +271,10 @@ class Tracker(object):
     def edit(self, url):  # type: (str) -> Tracker
         Torrent.driver().edit_tracker(self.torrent_hash, self.url, url)
         self.url = url
+        return self
+
+    def remove(self):  # type: () -> Tracker
+        Torrent.driver().remove_trackers(self.torrent_hash, self.url)
         return self
 
 
