@@ -28,7 +28,10 @@ class Torrents(Qbittorrent):
         'delete': '/delete',
         'recheck': '/recheck',
         'reannounce': '/reannounce',
-        'add': '/add'
+        'add': '/add',
+        'addTrackers': '/addTrackers',
+        'editTracker': '/editTracker',
+        'removeTrackers': '/removeTrackers'
     }
 
     def search(self, params):  # type: (InfoParams) -> TorrentCollection
@@ -61,7 +64,7 @@ class Torrents(Qbittorrent):
 
     def trackers(self, hash):  # type: (str) -> TrackerCollection
         path = self._get_path('trackers')
-        return TrackerCollection(self._GET(path, {'hash': hash}))
+        return TrackerCollection(self._GET(path, {'hash': hash}), hash)
 
     def web_seeds(self, hash):  # type: (str) -> WebSeedCollection
         path = self._get_path('webseeds')
@@ -123,7 +126,7 @@ class Torrents(Qbittorrent):
 
     def add(
             self,
-            torrent_file=None,  # type: str
+            torrent_files=None,  # type: Union[str,List[str]]
             urls=None,  # type: Union[list,str]
             save_path=None,  # type: str
             cookie=None,  # type: str
@@ -140,11 +143,11 @@ class Torrents(Qbittorrent):
             automatic_torrent_management=None,  # type: bool
             sequential_download=None,  # type: bool
             first_last_piece_prior=None,  # type: bool
-    ):
+    ):  # type: (...) -> Torrent
         """
         Arguments:
             urls (str): URLs separated with newlines
-            torrent_file (str): Raw data of torrent file. torrents can be presented multiple times.
+            torrent_files (list): Raw data of torrent file. torrents can be presented multiple times.
             save_path (str): [optional] Download folder
             cookie (str): [optional] Cookie sent to download the .torrent file
             category (str): [optional] Category for the torrent
@@ -161,7 +164,7 @@ class Torrents(Qbittorrent):
             sequential_download (bool): [optional] Enable sequential download. Possible values are true, false (default)
             first_last_piece_prior (bool): [optional] Prioritize download first last piece. Possible values are true, false (default)
         """
-        if torrent_file is None and urls is None:
+        if torrent_files is None and urls is None:
             raise Exception("Required parameters: 'torrent_file' or 'urls'")
 
         payload = {}
@@ -189,13 +192,27 @@ class Torrents(Qbittorrent):
         params = {}
         if len(payload.values()):
             params['payload'] = payload
-        if torrent_file is not None:
-            buffer = open(torrent_file, 'rb')
-            params['files'] = {'torrents': buffer}
+        if torrent_files is not None:
+            if type(torrent_files) is str:
+                torrent_files = [torrent_files]
+            params['files'] = [('torrents', open(torrent_file, 'rb')) for torrent_file in torrent_files]
 
         path = self._get_path('add')
+        self._POST(path, **params)
+        return self.last_added()
 
-        return self._POST(path, **params)
+    def add_trackers(self, hash, urls):  # type: (str,Union[str,List[str]]) -> None
+        path = self._get_path('addTrackers')
+        if type(urls) is list:
+            urls = '\n'.join(urls)
+        payload = {'hash': hash, 'urls': urls}
+        return self._POST(path, payload=payload)
+
+    def edit_tracker(self, hash, original_url, new_url):  # type: (str,str,str) -> None
+        path = self._get_path('editTracker')
+        payload = {'hash': hash, 'origUrl': original_url, 'newUrl': new_url}
+        print payload
+        return self._POST(path, payload=payload)
 
     def _extend(self, torrent, key):  # type: (TorrentType,str) -> ...
         _torrent = None
@@ -314,7 +331,3 @@ class InfoParams(object):
         if k in key_dict.keys():
             k = key_dict[k]
         setattr(self, k, v)
-
-
-Torrent.driver = Torrents
-Tracker.driver = Torrents

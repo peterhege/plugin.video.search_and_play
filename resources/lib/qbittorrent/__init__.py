@@ -5,6 +5,7 @@ import os
 from .base import AuthenticationError
 from .application import Application
 from .log import Log
+from .model import Torrent, Tracker, TrackerCollection
 from .sync import Sync
 from .transfer import Transfer
 from .torrents import Torrents
@@ -29,7 +30,10 @@ except:
             'qbittorrent_api_version': '2'
         }[setting_id]
 
-__all__ = ['AuthenticationError', 'Application', 'Log', 'Sync', 'Transfer', 'Torrents']
+__all__ = [
+    'AuthenticationError', 'Application', 'Log', 'Sync', 'Transfer', 'Torrents', 'Torrent', 'Tracker',
+    'TrackerCollection'
+]
 
 if not os.path.exists(USER_PATH):
     os.mkdir(USER_PATH)
@@ -39,3 +43,5 @@ WEB_UI_USER = os.environ.get('QBITTORRENT_WEB_UI_USER', get_setting('qbittorrent
 WEB_UI_PASS = os.environ.get('QBITTORRENT_WEB_UI_PASS', get_setting('qbittorrent_pass'))
 REQUESTS_TIMEOUT = os.environ.get('QBITTORRENT_REQUESTS_TIMEOUT', None)
 API_VERSION = os.environ.get('QBITTORRENT_API_VERSION', get_setting('qbittorrent_api_version'))
+
+Torrent.driver = Torrents

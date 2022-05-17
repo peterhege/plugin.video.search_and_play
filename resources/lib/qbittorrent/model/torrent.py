@@ -72,19 +72,32 @@ class Torrent(object):
         } for i in range(len(self.piece_hashes))])
 
     def pause(self):
-        return Torrent.driver().pause(self.hash)
+        Torrent.driver().pause(self.hash)
+        return self
 
     def resume(self):
-        return Torrent.driver().resume(self.hash)
+        Torrent.driver().resume(self.hash)
+        return self
 
     def delete(self, delete_files=False):
-        return Torrent.driver().delete(self.hash, delete_files)
+        Torrent.driver().delete(self.hash, delete_files)
+        return self
 
     def recheck(self):
-        return Torrent.driver().recheck(self.hash)
+        Torrent.driver().recheck(self.hash)
+        return self
 
     def do_reannounce(self):
-        return Torrent.driver().reannounce(self.hash)
+        Torrent.driver().reannounce(self.hash)
+        return self
+
+    def add_trackers(self, urls):  # type: (Union[str,List[str]]) -> Torrent
+        Torrent.driver().add_trackers(self.hash, urls)
+        return self
+
+    def edit_tracker(self, original_url, new_url):  # type: (str,str) -> Torrent
+        Torrent.driver().edit_tracker(self.hash, original_url, new_url)
+        return self
 
 
 class TorrentType(Torrent):
@@ -187,15 +200,28 @@ class Category(object):
 
 class TrackerCollection(Collection):
     list = []  # type: List[Tracker]
+    torrent_hash = None  # type: str
 
-    def __init__(self, trackers):  # type: (Union[Dict[str,List[str]],List[dict]]) -> None
+    def __init__(self, trackers, torrent_hash):  # type: (Union[Dict[str,List[str]],List[dict]],str) -> None
+        self.torrent_hash = torrent_hash
+        trackers = self.parse(trackers)
+        super(TrackerCollection, self).__init__(trackers, Tracker)
+
+    def parse(self, trackers):
         if type(trackers) is dict:
             trackers_dict = trackers.copy()
             trackers = []
             for url, hashes in trackers_dict.items():
                 data = {'url': url, 'hashes': hashes}
                 trackers.append(data)
-        super(TrackerCollection, self).__init__(trackers, Tracker)
+        for tracker in trackers:
+            tracker['torrent_hash'] = self.torrent_hash
+        return trackers
+
+    def add(self, urls):  # type: (Union[str,List[str]]) -> TrackerCollection
+        Torrent.driver().add_trackers(self.torrent_hash, urls)
+        self.list = Torrent.driver().trackers(self.torrent_hash).list
+        return self
 
 
 class Tracker(object):
@@ -208,10 +234,16 @@ class Tracker(object):
     num_leeches = None  # type: int
     num_downloaded = None  # type: int
     msg = None  # type: str
+    torrent_hash = None  # type: str
 
     def __init__(self, **kwargs):  # type: (dict) -> None
         for k, v in kwargs.items():
             setattr(self, k, v)
+
+    def edit(self, url):  # type: (str) -> Tracker
+        Torrent.driver().edit_tracker(self.torrent_hash, self.url, url)
+        self.url = url
+        return self
 
 
 class TorrentPeerCollection(object):

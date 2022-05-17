@@ -4,9 +4,13 @@ class Collection(object):
     list = []  # type: list
 
     def __init__(self, data_list, callback=None):  # type: (list,callable) -> None
+        self.persist(data_list, callback)
+
+    def persist(self, data_list, callback=None):  # type: (list,callable) -> Collection
         if callback is not None:
             data_list = [callback(**data) for data in data_list]
         self.list = data_list
+        return self
 
     def first(self):
         return self.list[0]
