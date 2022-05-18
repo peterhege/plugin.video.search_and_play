@@ -5,10 +5,10 @@ import requests
 
 from .base import Qbittorrent
 from .model import TorrentCollection, Torrent, TorrentType, TrackerCollection, Tracker, WebSeedCollection, \
-    TorrentFileCollection, TorrentPeer
+    TorrentFileCollection, TorrentPeer, CategoryCollection
 
 try:
-    from typing import Union, List
+    from typing import Union, List, Dict
 except:
     pass
 
@@ -36,7 +36,8 @@ class Torrents(Qbittorrent):
         'increasePrio': '/increasePrio',
         'decreasePrio': '/decreasePrio',
         'topPrio': '/topPrio',
-        'bottomPrio': '/bottomPrio'
+        'bottomPrio': '/bottomPrio',
+        'filePrio': '/filePrio'
     }
 
     def search(self, params):  # type: (InfoParams) -> TorrentCollection
@@ -82,7 +83,7 @@ class Torrents(Qbittorrent):
             if type(indexes) is list:
                 indexes = '|'.join(indexes)
             params['indexes'] = indexes
-        return TorrentFileCollection(self._GET(path, params))
+        return TorrentFileCollection(self._GET(path, params), hash)
 
     def piece_states(self, hash):
         path = self._get_path('pieceStates')
@@ -270,6 +271,93 @@ class Torrents(Qbittorrent):
             hashes = '|'.join(hashes)
         path = self._get_path('bottomPrio')
         payload = {'hashes': hashes}
+        return self._POST(path, payload=payload)
+
+    def file_priority(self, hash, id, priority):  # type: (str,int,int) -> None
+        path = self._get_path('filePrio')
+        payload = {'hash': hash, 'id': id, 'priority': priority}
+        return self._POST(path, payload=payload)
+
+    def download_limit(self, hashes):  # type: (Union[str,List[str]]) -> Dict[str,int]
+        if type(hashes) is list:
+            hashes = '|'.join(hashes)
+        path = self._get_path('/downloadLimit')
+        params = {'hashes': hashes}
+        return self._GET(path, params=params)
+
+    def set_download_limit(self, hashes, limit):  # type: (Union[str,List[str]],int) -> None
+        """
+        Parameters:
+            hashes: hashes can contain multiple hashes separated by | or set to all
+            limit: limit is the download speed limit in bytes per second
+        """
+        if type(hashes) is list:
+            hashes = '|'.join(hashes)
+        path = self._get_path('/setDownloadLimit')
+        payload = {'hashes': hashes, 'limit': limit}
+        return self._POST(path, payload=payload)
+
+    def set_share_limits(self, hashes, ratio_limit, seeding_time_limit):
+        # type: (Union[str,List[str]], float, int) -> None
+        """
+        Parameters:
+            hashes: can contain multiple hashes separated by | or set to all
+            ratio_limit: is the max ratio the torrent should be seeded until. -2 means the global limit should be used, -1 means no limit.
+            seeding_time_limit: is the max amount of time the torrent should be seeded. -2 means the global limit should be used, -1 means no limit.
+        """
+        path = self._get_path('/setShareLimits')
+        payload = {'hashes': hashes, 'ratioLimit': ratio_limit, 'seedingTimeLimit': seeding_time_limit}
+        return self._POST(path, payload=payload)
+
+    def upload_limit(self, hashes):
+        if type(hashes) is list:
+            hashes = '|'.join(hashes)
+        path = self._get_path('/uploadLimit')
+        params = {'hashes': hashes}
+        return self._GET(path, params=params)
+
+    def set_upload_limit(self, hashes, limit):  # type: (Union[str,List[str]],int) -> None
+        """
+        Parameters:
+            hashes: can contain multiple hashes separated by | or set to all
+            limit: is the upload speed limit in bytes per second you want to set.
+        """
+        if type(hashes) is list:
+            hashes = '|'.join(hashes)
+        path = self._get_path('/setUploadLimit')
+        payload = {'hashes': hashes, 'limit': limit}
+        return self._POST(path, payload=payload)
+
+    def set_location(self, hashes, location):  # type: (Union[str,List[str]],str) -> None
+        if type(hashes) is list:
+            hashes = '|'.join(hashes)
+        path = self._get_path('/setLocation')
+        payload = {'hashes': hashes, 'location': location}
+        return self._POST(path, payload=payload)
+
+    def rename(self, hash, name):  # type: (str,str) -> None
+        path = self._get_path('/rename')
+        payload = {'hash': hash, 'name': name}
+        return self._POST(path, payload=payload)
+
+    def set_category(self, hashes, category):  # type: (Union[str,List[str]],str) -> None
+        if type(hashes) is list:
+            hashes = '|'.join(hashes)
+        if self.categories().find_by_name(category) is None:
+            self.create_category(category)
+        path = self._get_path('/setCategory')
+        payload = {'hashes': hashes, 'category': category}
+        return self._POST(path, payload=payload)
+
+    def categories(self):  # type: () -> CategoryCollection
+        path = self._get_path('/categories')
+        return CategoryCollection(self._GET(path))
+
+    def create_category(self, name, save_path=None):
+        path = self._get_path('/createCategory')
+        payload = {'category': name}
+        if save_path is not None:
+            payload['savePath'] = save_path
         return self._POST(path, payload=payload)
 
     def _extend(self, torrent, key):  # type: (TorrentType,str) -> ...

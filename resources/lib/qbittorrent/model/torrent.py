@@ -113,18 +113,55 @@ class Torrent(object):
 
     def increase_priority(self):  # type: () -> Torrent
         Torrent.driver().increase_priority(self.hash)
+        if self.priority is not None:
+            self.priority += 1
         return self
 
     def decrease_priority(self):  # type: () -> Torrent
         Torrent.driver().decrease_priority(self.hash)
+        if self.priority is not None:
+            self.priority -= 1
         return self
 
     def top_priority(self):  # type: () -> Torrent
         Torrent.driver().top_priority(self.hash)
+        self.priority = 1
         return self
 
     def bottom_priority(self):  # type: () -> Torrent
         Torrent.driver().bottom_priority(self.hash)
+        self.priority = Torrent.driver().download_limit(self.hash)[self.hash]
+        return self
+
+    def set_download_limit(self, limit):  # type: (int) -> Torrent
+        Torrent.driver().set_download_limit(self.hash, limit)
+        self.dl_limit = limit
+        return self
+
+    def set_share_limit(self, ratio_limit, seeding_time_limit):  # type: (float, int) -> Torrent
+        Torrent.driver().set_share_limits(self.hash, ratio_limit, seeding_time_limit)
+        self.ratio_limit = ratio_limit
+        self.seeding_time_limit = seeding_time_limit
+        return self
+
+    def set_upload_limit(self, limit):  # type: (int) -> Torrent
+        Torrent.driver().set_upload_limit(self.hash, limit)
+        self.up_limit = limit
+        return self
+
+    def set_location(self, location):  # type: (str) -> Torrent
+        Torrent.driver().set_location(self.hash, location)
+        self.save_path = location
+        return self
+
+    def rename(self, name):  # type (str) -> Torrent
+        Torrent.driver().rename(self.hash, name)
+        self.name = name
+        return self
+
+    def set_category(self, category):  # type (str) -> Torrent
+        Torrent.driver().set_category(self.hash, category)
+        self.category = category
         return self
 
 
@@ -207,14 +244,14 @@ class TorrentType(Torrent):
     piece_hashes = None  # type: List[str]
 
 
-class CategoryCollection(object):
+class CategoryCollection(Collection):
     categories = []  # type: List[Category]
 
-    def __init__(self, categories_dict):  # type: (Dict[str,Dict[str,str]]) -> None
-        self.categories = [Category(**data) for data in categories_dict.values()]
+    def __init__(self, data_list):  # type: (Dict[str,Dict[str,str]]) -> None
+        super(CategoryCollection, self).__init__(data_list.values(), Category)
 
-    def search(self, needle):  # type: (str) -> List[Category]
-        return [category for category in self.categories if needle in category.name]
+    def find_by_name(self, name):  # type: (str) -> Union[Category,None]
+        return self.search(lambda c: c.name == name)
 
 
 class Category(object):
@@ -339,6 +376,11 @@ class WebSeedCollection(Collection):
 
 
 class TorrentFile(object):
+    PRIOR_DISABLE = 0
+    PRIOR_NORMAL = 1
+    PRIOR_HIGH = 6
+    PRIOR_MAX = 7
+
     index = None  # type: int
     name = None  # type: str
     size = None  # type: int
@@ -347,16 +389,26 @@ class TorrentFile(object):
     is_seed = None  # type: bool
     piece_range = None  # type: int
     availability = None  # type: float
+    torrent_hash = None  # type: str
 
     def __init__(self, **kwargs):
         for k, v in kwargs.items():
             setattr(self, k, v)
 
+    def set_priority(self, priority):  # type: (int) -> TorrentFile
+        Torrent.driver().file_priority(self.torrent_hash, self.index, priority)
+        self.priority = priority
+        return self
+
 
 class TorrentFileCollection(Collection):
     list = []  # type: List[TorrentFile]
 
-    def __init__(self, data_list):
+    def __init__(self, data_list, torrent_hash):
+        for index in range(len(data_list)):
+            if 'index' not in data_list[index]:
+                data_list[index]['index'] = index
+            data_list[index]['torrent_hash'] = torrent_hash
         super(TorrentFileCollection, self).__init__(data_list, TorrentFile)
 
     def movie_file(self):  # type: () -> Union[TorrentFile,None]

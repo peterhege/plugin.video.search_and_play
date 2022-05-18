@@ -74,7 +74,8 @@ class Qbittorrent(object):
         pickle.dump(requests.utils.dict_from_cookiejar(self.session.cookies), cookie_file)
 
     def _get_path(self, key):
-        return self.BASE_PATH + self.URLS[key]
+        endpoint = self.URLS[key] if key in self.URLS else key
+        return self.BASE_PATH + endpoint
 
     def _get_complete_url(self, path):
         return '{base_uri}/{path}'.format(base_uri=self.base_uri, path=path)
