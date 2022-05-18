@@ -262,6 +262,11 @@ class Category(object):
         for k, v in kwargs.items():
             setattr(self, to_snake_case(k), v)
 
+    def set_save_path(self, save_path):  # type: (str) -> Category
+        Torrent.driver().edit_category(self.name, save_path)
+        self.save_path = save_path
+        return self
+
 
 class TrackerCollection(Collection):
     list = []  # type: List[Tracker]

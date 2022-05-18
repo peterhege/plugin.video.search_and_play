@@ -5,7 +5,7 @@ import requests
 
 from .base import Qbittorrent
 from .model import TorrentCollection, Torrent, TorrentType, TrackerCollection, Tracker, WebSeedCollection, \
-    TorrentFileCollection, TorrentPeer, CategoryCollection
+    TorrentFileCollection, TorrentPeer, CategoryCollection, Category
 
 try:
     from typing import Union, List, Dict
@@ -349,15 +349,23 @@ class Torrents(Qbittorrent):
         payload = {'hashes': hashes, 'category': category}
         return self._POST(path, payload=payload)
 
+    def category(self, name):  # type: (str) -> Union[Category,None]
+        return self.categories().find_by_name(name)
+
     def categories(self):  # type: () -> CategoryCollection
         path = self._get_path('/categories')
         return CategoryCollection(self._GET(path))
 
-    def create_category(self, name, save_path=None):
+    def create_category(self, name, save_path=None):  # type: (str,str) -> None
         path = self._get_path('/createCategory')
         payload = {'category': name}
         if save_path is not None:
             payload['savePath'] = save_path
+        return self._POST(path, payload=payload)
+
+    def edit_category(self, name, save_path):  # type: (str,str) -> None
+        path = self._get_path('/editCategory')
+        payload = {'category': name, 'savePath': save_path}
         return self._POST(path, payload=payload)
 
     def _extend(self, torrent, key):  # type: (TorrentType,str) -> ...
