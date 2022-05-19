@@ -46,7 +46,10 @@ class Torrents(Qbittorrent):
     def info(self, params):  # type: (InfoParams) -> TorrentCollection
         path = self._get_path('info')
         params = {k: v for k, v in params.__dict__.items() if v is not None}
-        return TorrentCollection(self._GET(path, params))
+        result = self._GET(path, params)
+        if not self.version_satisfying('2.8.3') and 'tag' in params:
+            result = filter(lambda d: params['tag'] in d['tags'].split(', '), result)
+        return TorrentCollection(result)
 
     def get(self, hash):  # type: (str) -> Union[TorrentType,Torrent]
         return Torrent(hash=hash)
@@ -77,13 +80,25 @@ class Torrents(Qbittorrent):
         return WebSeedCollection(self._GET(path, {'hash': hash}))
 
     def files(self, hash, indexes=None):  # type: (str,Union[str,List[str]]) -> TorrentFileCollection
-        path = self._get_path('files')
         params = {'hash': hash}
         if indexes is not None:
             if type(indexes) is list:
                 indexes = '|'.join(indexes)
             params['indexes'] = indexes
-        return TorrentFileCollection(self._GET(path, params), hash)
+
+        path = self._get_path('files')
+        result = self._GET(path, params)
+
+        if not self.version_satisfying('2.8.2') and indexes is not None:
+            indexes = indexes.split('|')
+            r = []
+            for index in range(len(result)):
+                if index in indexes:
+                    r = result[index]
+                    r[index]['index'] = index
+            result = r
+
+        return TorrentFileCollection(result, hash)
 
     def piece_states(self, hash):
         path = self._get_path('pieceStates')

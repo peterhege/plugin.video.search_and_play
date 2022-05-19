@@ -51,7 +51,9 @@ class Torrent(object):
 
     def __init__(self, **kwargs):
         for k, v in kwargs.items():
-            setattr(self, k, v)
+            if k == 'tags':
+                v = [tag.strip() for tag in v.split(',')]
+            setattr(self, to_snake_case(k), v)
 
     def __getattr__(self, item):
         return Torrent.driver()._extend(self, item)

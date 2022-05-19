@@ -109,3 +109,14 @@ class Qbittorrent(object):
 
     def _DELETE(self, path, params=None, payload=None, headers=None):
         return self._request('DELETE', path, params=params, payload=payload, headers=headers)
+
+    def version_satisfying(self, required):
+        from . import WEB_API_VERSION
+        required = required.split('.')
+        current = WEB_API_VERSION.split('.')
+        required = required + [0] * (max(len(required), len(current)) - len(required))
+        current = current + [0] * (len(required) - len(current))
+        (r, c) = (int(required.pop(0)), int(current.pop(0)))
+        while r == c and len(required) > 0:
+            (r, c) = (int(required.pop(0)), int(current.pop(0)))
+        return r <= c

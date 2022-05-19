@@ -43,6 +43,7 @@ WEB_UI_USER = os.environ.get('QBITTORRENT_WEB_UI_USER', get_setting('qbittorrent
 WEB_UI_PASS = os.environ.get('QBITTORRENT_WEB_UI_PASS', get_setting('qbittorrent_pass'))
 REQUESTS_TIMEOUT = os.environ.get('QBITTORRENT_REQUESTS_TIMEOUT', None)
 API_VERSION = os.environ.get('QBITTORRENT_API_VERSION', get_setting('qbittorrent_api_version'))
+WEB_API_VERSION = Application().webapi_version()
 
 Torrent.driver = Torrents
 Torrent.sync = Sync
