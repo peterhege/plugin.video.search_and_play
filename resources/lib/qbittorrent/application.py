@@ -47,6 +47,8 @@ class Application(Qbittorrent):
         """
         Get build info
         """
+        if not self.version_satisfying('2.3.0'):
+            raise Exception('Min version 2.3.0')
         if 'build_info' not in CACHE:
             path = self._get_path('buildInfo')
             CACHE['build_info'] = BuildInfo(**self._GET(path, None))
@@ -74,6 +76,22 @@ class Application(Qbittorrent):
         """
         path = self._get_path('setPreferences')
         kwargs = {k: v for k, v in preferences.__dict__.items() if v is not None}
+
+        for k in kwargs.keys():
+            if k in [
+                'create_subfolder_enabled', 'start_paused_enabled', 'auto_delete_mode', 'preallocate_all',
+                'incomplete_files_ext', 'auto_tmm_enabled', 'torrent_changed_tmm_enabled',
+                'save_path_changed_tmm_enabled', 'category_changed_tmm_enabled', 'mail_notification_sender',
+                'limit_lan_peers', 'slow_torrent_dl_rate_threshold', 'slow_torrent_ul_rate_threshold',
+                'slow_torrent_inactive_timer', 'alternative_webui_enabled', 'alternative_webui_path'
+            ] and not self.version_satisfying('2.2.0'):
+                raise Exception('Min version 2.2.0')
+            if k in [
+                'piece_extent_affinity', 'web_ui_secure_cookie_enabled', 'web_ui_max_auth_fail_count',
+                'web_ui_ban_duration', 'stop_tracker_timeout'
+            ] and not self.version_satisfying('2.4.1'):
+                raise Exception('Min version 2.4.1')
+
         params = {'json': json.dumps(kwargs)}
         self._GET(path, params)
         return self.get_preferences()

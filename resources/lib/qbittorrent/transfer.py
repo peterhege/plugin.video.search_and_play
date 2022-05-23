@@ -72,6 +72,9 @@ class Transfer(Qbittorrent):
         """
         :param peers: The peer to ban, or multiple peers separated by a pipe |. Each peer is a colon-separated host:port
         """
+        if not self.version_satisfying('2.3.0'):
+            raise Exception('Min version 2.3.0')
+
         peers = '|'.join(peers) if type(peers) is list else peers
 
         try:

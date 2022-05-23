@@ -10,6 +10,18 @@ from .sync import Sync
 from .transfer import Transfer
 from .torrents import Torrents
 
+"""
+rss/refreshItem: min version 2.2.1
+torrents/addTags: min 2.3.0
+torrents/removeTags: 2.3.0
+torrents/tags: 2.3.0
+torrents/createTags: 2.3.0
+torrents/deleteTags: 2.3.0
+torrents/renameFile: 2.4.0
+
+TODO: API v2.5.0 https://github.com/qbittorrent/qBittorrent/wiki/WebUI-API-(qBittorrent-4.1)#api-v250
+"""
+
 try:
     import xbmcaddon
     import xbmc

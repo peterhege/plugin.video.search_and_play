@@ -44,10 +44,16 @@ class Torrents(Qbittorrent):
         return self.info(params)
 
     def info(self, params):  # type: (InfoParams) -> TorrentCollection
-        path = self._get_path('info')
         params = {k: v for k, v in params.__dict__.items() if v is not None}
+        if 'hashes' in params and not self.version_satisfying('2.0.1'):
+            raise Exception('Required WebUI API version is 2.0.1 for hashes parameter.')
+        if 'filter' in params and params['filter'] in [
+            InfoParams.FILTER_STALLED, InfoParams.FILTER_STALLED_UPLOADING, InfoParams.FILTER_STALLED_DOWNLOADING
+        ] and not self.version_satisfying('2.4.1'):
+            raise Exception('Min version 2.4.1')
+        path = self._get_path('info')
         result = self._GET(path, params)
-        if not self.version_satisfying('2.8.3') and 'tag' in params:
+        if 'tag' in params and not self.version_satisfying('2.8.3'):
             result = filter(lambda d: params['tag'] in d['tags'].split(', '), result)
         return TorrentCollection(result)
 
@@ -139,6 +145,8 @@ class Torrents(Qbittorrent):
         return self._GET(path, params)
 
     def reannounce(self, hashes):
+        if not self.version_satisfying('2.0.2'):
+            raise Exception('Required WebUI API version is 2.0.2 for reannounce method')
         if type(hashes) is list:
             hashes = '|'.join(hashes)
         path = self._get_path('reannounce')
@@ -188,6 +196,11 @@ class Torrents(Qbittorrent):
         if torrent_files is None and urls is None:
             raise Exception("Required parameters: 'torrent_file' or 'urls'")
 
+        if (ratio_limit is not None or seeding_time_limit is not None) and not self.version_satisfying('2.8.1'):
+            raise Exception('Required WebUI API version is 2.8.1 for ratio_limit and seeding_time_limit parameters.')
+        if automatic_torrent_management is not None and not self.version_satisfying('2.2.0'):
+            raise Exception('Min version 2.2.0')
+
         payload = {}
         key_dict = {
             'save_path': 'savepath',
@@ -230,11 +243,15 @@ class Torrents(Qbittorrent):
         return self._POST(path, payload=payload)
 
     def edit_tracker(self, hash, original_url, new_url):  # type: (str,str,str) -> None
+        if not self.version_satisfying('2.2.0'):
+            raise Exception('Required WebUI API version is 2.2.0 for edit_tracker method')
         path = self._get_path('editTracker')
         payload = {'hash': hash, 'origUrl': original_url, 'newUrl': new_url}
         return self._POST(path, payload=payload)
 
     def remove_trackers(self, hash, urls):  # type: (str,Union[str,List[str]]) -> None
+        if not self.version_satisfying('2.2.0'):
+            raise Exception('Required WebUI API version is 2.2.0 for remove_trackers method')
         path = self._get_path('removeTrackers')
         if type(urls) is list:
             urls = '\n'.join(urls)
@@ -252,6 +269,8 @@ class Torrents(Qbittorrent):
             hashes (str): The hash of the torrent, or multiple hashes separated by a pipe |
             peers (str): The peer to add, or multiple peers separated by a pipe |. Each peer is a colon-separated host:port
         """
+        if not self.version_satisfying('2.3.0'):
+            raise Exception('Min version 2.3.0')
         if type(hashes) is list:
             hashes = '|'.join(hashes)
         if type(peers) is list:
@@ -288,7 +307,13 @@ class Torrents(Qbittorrent):
         payload = {'hashes': hashes}
         return self._POST(path, payload=payload)
 
-    def file_priority(self, hash, id, priority):  # type: (str,int,int) -> None
+    def file_priority(self, hash, id, priority):  # type: (str,Union[int,List[int]],int) -> None
+        if type(id) is list:
+            if self.version_satisfying('2.2.0'):
+                id = '|'.join(id)
+            else:
+                raise Exception('Min version 2.2.0')
+
         path = self._get_path('filePrio')
         payload = {'hash': hash, 'id': id, 'priority': priority}
         return self._POST(path, payload=payload)
@@ -320,6 +345,8 @@ class Torrents(Qbittorrent):
             ratio_limit: is the max ratio the torrent should be seeded until. -2 means the global limit should be used, -1 means no limit.
             seeding_time_limit: is the max amount of time the torrent should be seeded. -2 means the global limit should be used, -1 means no limit.
         """
+        if not self.version_satisfying('2.0.1'):
+            raise Exception('Required WebUI API version is 2.0.1 for set_share_limits method')
         path = self._get_path('/setShareLimits')
         payload = {'hashes': hashes, 'ratioLimit': ratio_limit, 'seedingTimeLimit': seeding_time_limit}
         return self._POST(path, payload=payload)
@@ -368,6 +395,8 @@ class Torrents(Qbittorrent):
         return self.categories().find_by_name(name)
 
     def categories(self):  # type: () -> CategoryCollection
+        if not self.version_satisfying('2.1.1'):
+            raise Exception('Required WebUI API version is 2.1.1 for categories method')
         path = self._get_path('/categories')
         return CategoryCollection(self._GET(path))
 
@@ -375,10 +404,14 @@ class Torrents(Qbittorrent):
         path = self._get_path('/createCategory')
         payload = {'category': name}
         if save_path is not None:
+            if not self.version_satisfying('2.1.0'):
+                raise Exception('Required WebUI API version is 2.1.0 for save_path parameter.')
             payload['savePath'] = save_path
         return self._POST(path, payload=payload)
 
     def edit_category(self, name, save_path):  # type: (str,str) -> None
+        if not self.version_satisfying('2.1.0'):
+            raise Exception('Required WebUI API version is 2.1.0 for edit_category method')
         path = self._get_path('/editCategory')
         payload = {'category': name, 'savePath': save_path}
         return self._POST(path, payload=payload)
