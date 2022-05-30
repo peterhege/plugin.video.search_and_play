@@ -156,14 +156,23 @@ class Torrent(object):
         self.save_path = location
         return self
 
-    def rename(self, name):  # type (str) -> Torrent
+    def rename(self, name):  # type: (str) -> Torrent
         Torrent.driver().rename(self.hash, name)
         self.name = name
         return self
 
-    def set_category(self, category):  # type (str) -> Torrent
+    def set_category(self, category):  # type: (str) -> Torrent
         Torrent.driver().set_category(self.hash, category)
         self.category = category
+        return self
+
+    def add_tags(self, tags):  # type: (Union[str,List[str]]) -> Union[Torrent,TorrentType]
+        Torrent.driver().add_tags(self.hash, tags)
+        if self.tags is None:
+            self.tags = ''
+        if type(tags) is str:
+            tags = tags.split(',')
+        self.tags = list(set(self.tags + tags))
         return self
 
 
@@ -247,7 +256,7 @@ class TorrentType(Torrent):
 
 
 class CategoryCollection(Collection):
-    categories = []  # type: List[Category]
+    list = []  # type: List[Category]
 
     def __init__(self, data_list):  # type: (Dict[str,Dict[str,str]]) -> None
         super(CategoryCollection, self).__init__(data_list.values(), Category)
@@ -267,6 +276,10 @@ class Category(object):
     def set_save_path(self, save_path):  # type: (str) -> Category
         Torrent.driver().edit_category(self.name, save_path)
         self.save_path = save_path
+        return self
+
+    def remove(self):
+        Torrent.driver().remove_categories(self.name)
         return self
 
 

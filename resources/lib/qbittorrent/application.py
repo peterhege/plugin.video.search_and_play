@@ -91,6 +91,8 @@ class Application(Qbittorrent):
                 'web_ui_ban_duration', 'stop_tracker_timeout'
             ] and not self.version_satisfying('2.4.1'):
                 raise Exception('Min version 2.4.1')
+            if k in ['enable_super_seeding'] and not self.version_satisfying('2.5.0'):
+                raise Exception('Min version 2.5.0')
 
         params = {'json': json.dumps(kwargs)}
         self._GET(path, params)

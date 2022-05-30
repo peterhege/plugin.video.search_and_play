@@ -200,6 +200,8 @@ class Torrents(Qbittorrent):
             raise Exception('Required WebUI API version is 2.8.1 for ratio_limit and seeding_time_limit parameters.')
         if automatic_torrent_management is not None and not self.version_satisfying('2.2.0'):
             raise Exception('Min version 2.2.0')
+        if tags is not None and not self.version_satisfying('2.6.2'):
+            raise Exception('Min version 2.6.2')
 
         payload = {}
         key_dict = {
@@ -414,6 +416,25 @@ class Torrents(Qbittorrent):
             raise Exception('Required WebUI API version is 2.1.0 for edit_category method')
         path = self._get_path('/editCategory')
         payload = {'category': name, 'savePath': save_path}
+        return self._POST(path, payload=payload)
+
+    def remove_categories(self, categories):  # type: (Union[str,List[str]]) -> None
+        if type(categories) is list:
+            categories = '\n'.join(categories)
+        path = self._get_path('/removeCategories')
+        payload = {'categories': categories}
+        return self._POST(path, payload=payload)
+
+    def add_tags(self, hashes, tags):  # type: (Union[str,List[str]], Union[str,List[str]]) -> None
+        if not self.version_satisfying('2.3.0'):
+            raise Exception('Min version 2.3.0')
+        if type(hashes) is list:
+            '|'.join(hashes)
+        if type(tags) is list:
+            tags = ','.join(tags)
+
+        path = self._get_path('/addTags')
+        payload = {'hashes': hashes, 'tags': tags}
         return self._POST(path, payload=payload)
 
     def _extend(self, torrent, key):  # type: (TorrentType,str) -> ...
